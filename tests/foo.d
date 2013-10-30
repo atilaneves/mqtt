@@ -3,8 +3,8 @@ import mqtt.message;
 
 
 void testEncode() {
-    const msg = MqttMessage(3, true, 2, false, 5);
-    checkEqual(msg.type, 3);
+    const msg = MqttMessage(MqttType.PUBLISH, true, 2, false, 5);
+    checkEqual(msg.type, MqttType.PUBLISH);
     checkEqual(msg.dup, true);
     checkEqual(msg.qos, 2);
     checkEqual(msg.retain, false);
@@ -14,7 +14,7 @@ void testEncode() {
 
 void testDecode() {
     auto msg = MqttMessage([0x3c, 0x5]);
-    checkEqual(msg.type, 3);
+    checkEqual(msg.type, MqttType.PUBLISH);
     checkEqual(msg.dup, true);
     checkEqual(msg.qos, 2);
     checkEqual(msg.retain, false);
