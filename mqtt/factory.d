@@ -10,8 +10,6 @@ struct MqttFactory {
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
             return new MqttConnect(fixedHeader);
-       case MqttType.CONNACK:
-            return new MqttConnack(fixedHeader);
         default:
             return null;
         }

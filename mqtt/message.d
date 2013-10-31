@@ -144,7 +144,27 @@ public:
 }
 
 class MqttConnack: MqttMessage {
-    this(MqttFixedHeader header) {
-        super(header);
+
+    enum Code {
+        ACCEPTED = 0,
+        BAD_VERSION = 1,
+        BAD_ID = 2,
+        SERVER_UNAVAILABLE = 3,
+        BAD_USER_OR_PWD = 4,
+        NO_AUTH = 5,
     }
+
+    this(Code code) {
+        super(MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2));
+        this.code = code;
+    }
+
+    const(ubyte[]) encode() const {
+        auto cereal = new Cerealiser;
+        cereal ~= cast(ubyte)0; //reserved byte
+        cereal ~= cast(ubyte)code;
+        return fixedHeader.encode() ~ cereal.bytes;
+    }
+
+    Code code;
 }

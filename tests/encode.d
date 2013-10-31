@@ -98,3 +98,9 @@ void testConnectMsg() {
     checkTrue(connect.hasWill);
     checkFalse(connect.hasClear);
 }
+
+void testConnackMsg() {
+    const connack = new MqttConnack(MqttConnack.Code.SERVER_UNAVAILABLE);
+    checkEqual(connack.encode(),
+               [0x20, 0x2, 0x0, 0x3]);
+}
