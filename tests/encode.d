@@ -104,3 +104,52 @@ void testConnackMsg() {
     checkEqual(connack.encode(),
                [0x20, 0x2, 0x0, 0x3]);
 }
+
+void testDecodePublishWithMsgId() {
+
+    ubyte[] bytes = [ 0x3c, 0x07, //fixed header
+                      0x00, 0x03, 't', 'o', 'p', //topic name
+                      0x00, 0x21, //message ID
+        ];
+
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    checkEqual(msg.fixedHeader.remaining, 7);
+
+    const publish = cast(MqttPublish)msg;
+    checkNotNull(publish);
+
+    checkEqual(publish.topic, "top");
+    checkEqual(publish.msgId, 33);
+}
+
+void testDecodePublishWithNoMsgId() {
+    ubyte[] bytes = [ 0x3c, 0x05, //fixed header
+                      0x00, 0x03, 't', 'u', 'p', //topic name
+        ];
+
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    checkEqual(msg.fixedHeader.remaining, 5);
+
+    const publish = cast(MqttPublish)msg;
+    checkNotNull(publish);
+
+    checkEqual(publish.topic, "tup");
+    checkEqual(publish.msgId, 0); //no message id
+}
+
+void testEncodePublish() {
+    checkEqual((new MqttPublish(false, 2, true, "foo", 12)).encode(),
+               [0x35, 0x07, //header
+                0x00, 0x03, 'f', 'o', 'o', //topic
+                0x00, 0x0c, //msgId
+               ]
+              );
+
+    checkEqual((new MqttPublish(true, 0, false, "bars")).encode(),
+               [0x38, 0x06, //header
+                0x00, 0x04, 'b', 'a', 'r', 's',//topic
+               ]
+        );
+}

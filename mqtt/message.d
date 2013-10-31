@@ -1,7 +1,10 @@
 module mqtt.message;
 
+
 import cerealed.cerealiser;
 import cerealed.decerealiser;
+import std.stdio;
+
 
 enum MqttType {
     RESERVED1   = 0,
@@ -167,4 +170,41 @@ class MqttConnack: MqttMessage {
     }
 
     Code code;
+}
+
+
+class MqttPublish: MqttMessage {
+public:
+    this(MqttFixedHeader header) {
+        super(header);
+        auto cereal = new Decerealiser(fixedHeader.bytes);
+        topic = cereal.value!string;
+        if(fixedHeader.qos > 0) {
+            if(fixedHeader.remaining != 7) {
+                stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+            } else {
+                msgId = cereal.value!ushort;
+            }
+        }
+    }
+
+    this(bool dup, ubyte qos, bool retain, string topic, ushort msgId = 0) {
+        immutable topicLen = cast(uint)topic.length + 2; //2 for length
+        immutable remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
+        super(MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining));
+        this.topic = topic;
+        this.msgId = msgId;
+    }
+
+    const(ubyte[]) encode() const {
+        auto cereal = new Cerealiser;
+        cereal ~= topic;
+        if(fixedHeader.qos) {
+            cereal ~= msgId;
+        }
+        return fixedHeader.encode() ~ cereal.bytes;
+    }
+
+    string topic;
+    ushort msgId;
 }

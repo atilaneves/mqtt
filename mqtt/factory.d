@@ -2,6 +2,7 @@ module mqtt.factory;
 
 
 import mqtt.message;
+import std.stdio;
 
 
 struct MqttFactory {
@@ -10,7 +11,10 @@ struct MqttFactory {
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
             return new MqttConnect(fixedHeader);
+        case MqttType.PUBLISH:
+            return new MqttPublish(fixedHeader);
         default:
+            stderr.writeln("Unknown MQTT message type ", fixedHeader.type);
             return null;
         }
     }
