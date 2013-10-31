@@ -9,7 +9,9 @@ struct MqttFactory {
         const fixedHeader = MqttFixedHeader(bytes);
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
-            return new MqttConnect();
+            return new MqttConnect(fixedHeader);
+       case MqttType.CONNACK:
+            return new MqttConnack(fixedHeader);
         default:
             return null;
         }

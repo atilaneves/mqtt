@@ -29,6 +29,7 @@ public:
     ubyte qos;
     bool retain;
     uint remaining;
+    const ubyte[] remainingBytes;
 
     this(MqttType type, bool dup, ubyte qos, bool retain, uint remaining = 0) {
         this.type = type;
@@ -48,6 +49,8 @@ public:
         retain = cast(bool)(_byte1 & 0x01);
 
         remaining = getRemainingSize(cereal);
+
+        remainingBytes = cereal.bytes;
     }
 
     auto encode() const {
@@ -57,6 +60,8 @@ public:
         setRemainingSize(cereal);
         return cereal.bytes;
     }
+
+    @property const(ubyte[]) bytes() const { return remainingBytes; }
 
 private:
     ubyte _byte1;
@@ -92,8 +97,54 @@ private:
 }
 
 class MqttMessage {
+    this(MqttFixedHeader header) {
+        fixedHeader = header;
+    }
     MqttFixedHeader fixedHeader;
 }
 
 class MqttConnect: MqttMessage {
+public:
+    this(MqttFixedHeader header) {
+        super(header);
+        auto cereal = new Decerealiser(fixedHeader.bytes);
+        protoName = cereal.value!string;
+        protoVersion = cereal.value!ubyte;
+        ubyte flags = cereal.value!ubyte;
+        hasUserName = cast(bool)(flags & 0x80);
+        hasPassword = cast(bool)(flags & 0x40);
+        hasWillRetain = cast(bool)(flags & 0x20);
+        willQos = (flags & 0x18) >> 3;
+        hasWill = cast(bool)(flags & 0x04);
+        hasClear = cast(bool)(flags & 0x02);
+        keepAlive = cereal.value!ushort;
+        clientId = cereal.value!string;
+        if(hasWill) willTopic = cereal.value!string;
+        if(hasWill) willMessage = cereal.value!string;
+        if(hasUserName) userName = cereal.value!string;
+        if(hasPassword) password = cereal.value!string;
+    }
+
+    @property bool isBadClientId() const { return clientId.length > 23; }
+
+    string protoName;
+    ubyte protoVersion;
+    ushort keepAlive;
+    string clientId;
+    bool hasUserName;
+    bool hasPassword;
+    bool hasWillRetain;
+    ubyte willQos;
+    bool hasWill;
+    bool hasClear;
+    string willTopic;
+    string willMessage;
+    string userName;
+    string password;
+}
+
+class MqttConnack: MqttMessage {
+    this(MqttFixedHeader header) {
+        super(header);
+    }
 }
