@@ -212,3 +212,27 @@ public:
     string payload;
     ushort msgId;
 }
+
+
+class MqttSubscribe: MqttMessage {
+public:
+    this(MqttFixedHeader header) {
+        super(header);
+        auto cereal = new Decerealiser(fixedHeader.bytes);
+        if(fixedHeader.qos > 0) {
+            msgId = cereal.value!ushort;
+        }
+
+        while(cereal.bytes.length) {
+            topics ~= Topic(cereal.value!string, cereal.value!ubyte);
+        }
+    }
+
+    struct Topic {
+        string topic;
+        ubyte qos;
+    }
+
+    Topic[] topics;
+    ushort msgId;
+}

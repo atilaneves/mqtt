@@ -124,7 +124,7 @@ void testDecodePublishWithMsgId() {
 }
 
 void testDecodePublishWithNoMsgId() {
-    ubyte[] bytes = [ 0x3c, 0x05, //fixed header
+    ubyte[] bytes = [ 0x30, 0x05, //fixed header
                       0x00, 0x03, 't', 'u', 'p', //topic name
         ];
 
@@ -154,4 +154,26 @@ void testEncodePublish() {
                 0x00, 0x03, 'b', 'o', 'o',
                ]
         );
+}
+
+
+void testSubscribe() {
+    ubyte[] bytes = [ 0x8c, 0x13, //fixed header
+                      0x00, 0x21, //message ID
+                      0x00, 0x05, 'f', 'i', 'r', 's', 't',
+                      0x01, //qos
+                      0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',
+                      0x02, //qos
+        ];
+
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    checkEqual(msg.fixedHeader.remaining, 19);
+
+    const subscribe = cast(MqttSubscribe)msg;
+    checkNotNull(subscribe);
+
+    checkEqual(subscribe.msgId, 33);
+    checkEqual(subscribe.topics,
+               [MqttSubscribe.Topic("first", 1), MqttSubscribe.Topic("second", 2)]);
 }
