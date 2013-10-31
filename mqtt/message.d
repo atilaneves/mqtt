@@ -188,11 +188,12 @@ public:
         }
     }
 
-    this(bool dup, ubyte qos, bool retain, string topic, ushort msgId = 0) {
+    this(bool dup, ubyte qos, bool retain, string topic, string payload, ushort msgId = 0) {
         immutable topicLen = cast(uint)topic.length + 2; //2 for length
         immutable remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
         super(MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining));
         this.topic = topic;
+        this.payload = payload;
         this.msgId = msgId;
     }
 
@@ -202,9 +203,11 @@ public:
         if(fixedHeader.qos) {
             cereal ~= msgId;
         }
+        cereal ~= payload;
         return fixedHeader.encode() ~ cereal.bytes;
     }
 
     string topic;
+    string payload;
     ushort msgId;
 }

@@ -140,16 +140,18 @@ void testDecodePublishWithNoMsgId() {
 }
 
 void testEncodePublish() {
-    checkEqual((new MqttPublish(false, 2, true, "foo", 12)).encode(),
-               [0x35, 0x07, //header
+    checkEqual((new MqttPublish(false, 2, true, "foo", "info", 12)).encode(),
+               [0x35, 0x0d, //header
                 0x00, 0x03, 'f', 'o', 'o', //topic
                 0x00, 0x0c, //msgId
+                0x00, 0x04, 'i', 'n', 'f', 'o',
                ]
               );
 
-    checkEqual((new MqttPublish(true, 0, false, "bars")).encode(),
-               [0x38, 0x06, //header
+    checkEqual((new MqttPublish(true, 0, false, "bars", "boo")).encode(),
+               [0x38, 0x0b, //header
                 0x00, 0x04, 'b', 'a', 'r', 's',//topic
+                0x00, 0x03, 'b', 'o', 'o',
                ]
         );
 }
