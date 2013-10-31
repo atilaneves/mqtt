@@ -90,3 +90,10 @@ private:
         }
     }
 }
+
+class MqttMessage {
+    MqttFixedHeader fixedHeader;
+}
+
+class MqttConnect: MqttMessage {
+}

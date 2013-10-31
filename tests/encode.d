@@ -1,5 +1,6 @@
 import unit_threaded.check;
 import mqtt.message;
+import mqtt.factory;
 import mqtt.utf8;
 
 
@@ -66,4 +67,22 @@ void testDecodeBigRemaining() {
         const msg = MqttFixedHeader([0x12, 0x85, 0x80, 0x80, 0x01]);
         checkEqual(msg.remaining, 2_097_157);
     }
+}
+
+void testConnectMsg() {
+    ubyte[] bytes = [ 0x10, 0x80,
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xce, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x0a, //keepalive of 10
+                      0x00, 0x03, 'c', 'i', 'd', //client ID
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x01, 'p', 'w', //password
+        ];
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    const connect = cast(MqttConnect)msg;
+    checkNotNull(connect);
 }
