@@ -190,7 +190,8 @@ public:
 
     this(bool dup, ubyte qos, bool retain, string topic, string payload, ushort msgId = 0) {
         immutable topicLen = cast(uint)topic.length + 2; //2 for length
-        immutable remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
+        auto remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
+        remaining += payload.length + 2;
         super(MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining));
         this.topic = topic;
         this.payload = payload;
