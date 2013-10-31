@@ -22,7 +22,7 @@ enum MqttType {
     RESERVED2
 }
 
-struct MqttMessage {
+struct MqttFixedHeader {
 public:
     MqttType type;
     bool dup;

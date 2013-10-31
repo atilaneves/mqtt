@@ -5,5 +5,5 @@ import unit_threaded.runner;
 
 
 int main(string[] args) {
-    return runTests!("foo")(args);
+    return runTests!("encode")(args);
 }
