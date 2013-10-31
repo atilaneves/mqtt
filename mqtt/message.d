@@ -219,10 +219,7 @@ public:
     this(MqttFixedHeader header) {
         super(header);
         auto cereal = new Decerealiser(fixedHeader.bytes);
-        if(fixedHeader.qos > 0) {
-            msgId = cereal.value!ushort;
-        }
-
+        msgId = cereal.value!ushort;
         while(cereal.bytes.length) {
             topics ~= Topic(cereal.value!string, cereal.value!ubyte);
         }
@@ -235,4 +232,24 @@ public:
 
     Topic[] topics;
     ushort msgId;
+}
+
+class MqttSuback: MqttMessage {
+public:
+
+    this(in ushort msgId, in ubyte[] qos) {
+        super(MqttFixedHeader(MqttType.SUBACK, false, 0, false, cast(uint)qos.length + 2));
+        this.msgId = msgId;
+        this.qos = qos.dup;
+    }
+
+    const(ubyte[]) encode() const {
+        auto cereal = new Cerealiser();
+        cereal ~= msgId;
+        foreach(q; qos) cereal ~= q;
+        return fixedHeader.encode() ~ cereal.bytes;
+    }
+
+    ushort msgId;
+    ubyte[] qos;
 }

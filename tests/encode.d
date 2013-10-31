@@ -177,3 +177,12 @@ void testSubscribe() {
     checkEqual(subscribe.topics,
                [MqttSubscribe.Topic("first", 1), MqttSubscribe.Topic("second", 2)]);
 }
+
+
+void testSuback() {
+    checkEqual((new MqttSuback(12, [1, 2, 0, 2])).encode(),
+                [0x90, 0x06, //fixed header
+                 0x00, 0x0c, //msgId
+                 0x01, 0x02, 0x00, 0x02, //qos
+                 ]);
+}
