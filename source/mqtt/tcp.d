@@ -27,6 +27,7 @@ class MqttTcpConnection: MqttConnection {
                 break;
             }
             auto bytes = read();
+            writeln("Creating mqttdata");
             const mqttData = MqttFactory.create(bytes);
             mqttData.handle(_server, this);
         } while(_tcpConnection.connected);
