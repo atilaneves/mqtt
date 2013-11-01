@@ -10,7 +10,6 @@ import std.array;
 
 class MqttServer {
     void newConnection(MqttConnection connection) {
-        writeln("MqttServer new connection");
         const connect = connection.connectMessage;
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
@@ -26,15 +25,15 @@ class MqttServer {
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
-        const qos = array(map!(a => a.qos)(topics));
+        //const qos = array(map!(a => a.qos)(topics));
+        //TODO: actually use QOS, for now just 0
+        const qos = array(map!(a => cast(ubyte)0)(topics));
         const suback = new MqttSuback(msgId, qos);
-        writeln("MqttServer received subscription, sending back SUBACK");
         connection.write(suback.encode());
         _broker.subscribe(connection, topics);
     }
 
     void publish(in string topic, in string payload) {
-        writeln("Server publishing ", topic, ": ", payload);
         _broker.publish(topic, payload);
     }
 
@@ -51,7 +50,6 @@ class MqttConnection: MqttSubscriber {
         if(connectMessage is null) {
             stderr.writeln("Invalid connect message");
         }
-        writeln("Received connect message from client id ", connectMessage.clientId);
     }
 
     abstract void write(in ubyte[] bytes);

@@ -8,15 +8,15 @@ import std.stdio;
 private MqttServer gServer;
 
 shared static this() {
-    setLogLevel(LogLevel.debugV);
+    //setLogLevel(LogLevel.debugV);
     gServer = new MqttServer();
-    writeln("About to listen");
+    logDebug("About to listen");
     listenTCP_s(1883, &accept);
 }
 
 
 void accept(TCPConnection tcpConnection) {
-    writeln("New TCP connection");
+    logDebug("New TCP connection");
     if (!tcpConnection.waitForData(10.seconds())) {
         logDebug("Client didn't send the initial request in a timely manner. Closing connection.");
     }

@@ -14,7 +14,7 @@ class MqttTcpConnection: MqttConnection {
         _tcpConnection = tcpConnection;
         _connected = true;
 
-        writeln("MqttTcpConnection reading ", _tcpConnection.leastSize, " bytes");
+        logDebug("MqttTcpConnection reading ", _tcpConnection.leastSize, " bytes");
         super(read());
     }
 
@@ -29,15 +29,15 @@ class MqttTcpConnection: MqttConnection {
                 break;
             }
             auto bytes = read();
-            writeln("Creating mqttdata");
+            logDebug("Creating mqttdata");
             const mqttData = MqttFactory.create(bytes);
-            mqttData.handle(_server, this);
+            if(mqttData) mqttData.handle(_server, this);
         } while(_tcpConnection.connected && _connected);
     }
 
     void newMessage(in string topic, in string payload) {
         const publish = new MqttPublish(topic, payload);
-        writeln("TCP connection sending back to client");
+        logDebug("TCP connection sending back to client");
         _tcpConnection.write(publish.encode());
     }
 
