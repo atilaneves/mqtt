@@ -34,6 +34,7 @@ class MqttServer {
     }
 
     void publish(in string topic, in string payload) {
+        writeln("Server publishing ", topic, ": ", payload);
         _broker.publish(topic, payload);
     }
 
@@ -54,6 +55,7 @@ class MqttConnection: MqttSubscriber {
     }
 
     abstract void write(in ubyte[] bytes);
+    void disconnect() {}
 
     MqttConnect connectMessage;
 }

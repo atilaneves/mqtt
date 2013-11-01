@@ -11,6 +11,7 @@ class MqttTcpConnection: MqttConnection {
     this(MqttServer server, TCPConnection tcpConnection) {
         _server = server;
         _tcpConnection = tcpConnection;
+        _connected = true;
 
         writeln("MqttTcpConnection reading ", _tcpConnection.leastSize, " bytes");
         super(read());
@@ -30,18 +31,22 @@ class MqttTcpConnection: MqttConnection {
             writeln("Creating mqttdata");
             const mqttData = MqttFactory.create(bytes);
             mqttData.handle(_server, this);
-        } while(_tcpConnection.connected);
+        } while(_tcpConnection.connected && _connected);
     }
 
     void newMessage(in string topic, in string payload) {
 
     }
 
+    override void disconnect() {
+        _connected = false;
+    }
 
 private:
 
     MqttServer _server;
     TCPConnection _tcpConnection;
+    bool _connected;
 
     auto read() {
         auto bytes = new ubyte[_tcpConnection.leastSize];

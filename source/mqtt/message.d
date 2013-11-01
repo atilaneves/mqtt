@@ -290,4 +290,8 @@ class MqttDisconnect: MqttMessage {
     this(MqttFixedHeader header) {
         super(header);
     }
+
+    override void handle(MqttServer server, MqttConnection connection) const {
+        connection.disconnect();
+    }
 }

@@ -16,6 +16,7 @@ interface MqttSubscriber {
 
 struct MqttBroker {
     void publish(in string topic, in string payload) {
+        writeln("Broker publishing ", topic, ": ", payload);
         foreach(s; _subscriptions) {
             foreach(t; s.topics) {
                 if(matches(topic, t.topic)) {
