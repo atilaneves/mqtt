@@ -1,4 +1,4 @@
-#!/usr/bin/rdmd -Itests
+#!/usr/bin/rdmd -Isource
 
 
 import unit_threaded.runner;
