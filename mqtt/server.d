@@ -4,6 +4,8 @@ module mqtt.server;
 import mqtt.message;
 import std.algorithm;
 import std.array;
+import std.algorithm;
+
 
 
 interface MqttSubscriber {
@@ -29,6 +31,7 @@ abstract class MqttServer {
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
         _subscriptions ~= Subscription(subscriber, topics);
     }
+
 
 private:
 

@@ -3,32 +3,22 @@ import mqtt.server;
 
 
 class TestMqttSubscriber: MqttSubscriber {
-    this(in string addr, in int port) {
-    }
-
     override void newMessage(in string topic, in string payload) {
-        _messages ~= payload;
+        messages ~= payload;
     }
 
-    @property const(string[]) messages() const { return _messages; }
-
-    string[] _messages;
+    string[] messages;
 }
 
 class TestMqttServer: MqttServer {
-    this(in int port) {
-    }
-
 }
 
 void testSubscribe() {
-    enum port = 1883;
-    auto server = new TestMqttServer(port);
+    auto server = new TestMqttServer();
 
-    auto subscriber = new TestMqttSubscriber("localhost", port);
+    auto subscriber = new TestMqttSubscriber();
     server.publish("topics/foo", "my foo is foo");
     checkEqual(subscriber.messages, []);
-
 
     server.subscribe(subscriber, ["topics/foo"]);
     server.publish("topics/foo", "my foo is foo");
