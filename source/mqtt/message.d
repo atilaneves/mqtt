@@ -104,7 +104,7 @@ class MqttMessage {
     this(MqttFixedHeader header) {
         fixedHeader = header;
     }
-    //abstract void handle(MqttServer);
+    void handle(MqttServer server, MqttConnection connection) const {}
     MqttFixedHeader fixedHeader;
 }
 
@@ -131,8 +131,6 @@ public:
     }
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
-     void handle(MqttServer server) {
-    }
 
     string protoName;
     ubyte protoVersion;
@@ -236,6 +234,10 @@ public:
         }
     }
 
+    override void handle(MqttServer server, MqttConnection connection) const {
+        server.subscribe(connection, msgId, topics);
+    }
+
     struct Topic {
         string topic;
         ubyte qos;
@@ -270,4 +272,11 @@ public:
 
     ushort msgId;
     ubyte[] qos;
+}
+
+
+class MqttDisconnect: MqttMessage {
+    this(MqttFixedHeader header) {
+        super(header);
+    }
 }
