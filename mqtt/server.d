@@ -12,19 +12,33 @@ interface MqttSubscriber {
 
 
 abstract class MqttServer {
-    void publish(in string topic, in string payload) pure const nothrow {
-    }
-
-    void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
+    void publish(in string topic, in string payload) {
+        foreach(s; _subscriptions) {
+            foreach(t; s.topics) {
+                if(t.topic == topic) {
+                    s.newMessage(topic, payload);
+                }
+            }
+        }
     }
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
         subscribe(subscriber, array(map!(a => MqttSubscribe.Topic(a, 0))(topics)));
     }
-}
 
-class MqttServerImpl: MqttServer {
-    this(in int port) {
+    void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
+        _subscriptions ~= Subscription(subscriber, topics);
     }
 
+private:
+
+    struct Subscription {
+        MqttSubscriber subscriber;
+        const MqttSubscribe.Topic[] topics;
+        void newMessage(in string topic, in string payload) {
+            subscriber.newMessage(topic, payload);
+        }
+    }
+
+    Subscription[] _subscriptions;
 }

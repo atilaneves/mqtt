@@ -7,7 +7,7 @@ class TestMqttSubscriber: MqttSubscriber {
     }
 
     override void newMessage(in string topic, in string payload) {
-
+        _messages ~= payload;
     }
 
     @property const(string[]) messages() const { return _messages; }
