@@ -188,12 +188,18 @@ public:
         super(header);
         auto cereal = new Decerealiser(fixedHeader.bytes);
         topic = cereal.value!string;
+        auto payloadLen = fixedHeader.remaining - (topic.length + 2);
         if(fixedHeader.qos > 0) {
-            if(fixedHeader.remaining != 7) {
+            if(fixedHeader.remaining < 7) {
                 stderr.writeln("Error: PUBLISH message with QOS but no message ID");
             } else {
                 msgId = cereal.value!ushort;
+                payloadLen -= 2;
             }
+        }
+
+        for(int i = 0; i < payloadLen; ++i) {
+            payload ~= cereal.value!ubyte;
         }
     }
 

@@ -95,19 +95,21 @@ void testConnackMsg() {
 
 void testDecodePublishWithMsgId() {
 
-    ubyte[] bytes = [ 0x3c, 0x07, //fixed header
+    ubyte[] bytes = [ 0x3c, 0x0b, //fixed header
                       0x00, 0x03, 't', 'o', 'p', //topic name
                       0x00, 0x21, //message ID
+                      'b', 'o', 'r', 'g', //payload
         ];
 
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 7);
+    checkEqual(msg.fixedHeader.remaining, 11);
 
     const publish = cast(MqttPublish)msg;
     checkNotNull(publish);
 
     checkEqual(publish.topic, "top");
+    checkEqual(publish.payload, "borg");
     checkEqual(publish.msgId, 33);
 }
 
