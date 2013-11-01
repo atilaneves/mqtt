@@ -42,7 +42,7 @@ public:
         this.remaining = remaining;
     }
 
-    this(ubyte[] bytes) {
+    this(in ubyte[] bytes) {
         auto cereal = new Decerealiser(bytes);
         _byte1 = cereal.value!ubyte();
 
@@ -160,6 +160,13 @@ class MqttConnack: MqttMessage {
     this(Code code) {
         super(MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2));
         this.code = code;
+    }
+
+    this(MqttFixedHeader header) {
+        super(header);
+        auto cereal = new Decerealiser(header.bytes);
+        cereal.value!ubyte; //reserver value
+        this.code = cast(Code)cereal.value!ubyte;
     }
 
     const(ubyte[]) encode() const {
