@@ -1,6 +1,7 @@
 import unit_threaded.check;
 import mqtt.server;
 import mqtt.message;
+import mqtt.factory;
 
 
 class TestMqttConnection: MqttConnection {
@@ -8,8 +9,9 @@ class TestMqttConnection: MqttConnection {
         super(bytes);
     }
 
-    override void newMessage(MqttMessage msg) {
-        lastMsg = msg;
+
+    override void write(in ubyte[] bytes) {
+        lastMsg = MqttFactory.create(bytes);
     }
 
     void newMessage(in string topic, in string payload) {

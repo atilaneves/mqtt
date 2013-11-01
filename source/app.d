@@ -14,8 +14,8 @@ class MqttTcpConnection: MqttConnection {
         super(bytes);
     }
 
-    override void newMessage(MqttMessage msg) {
-        //_tcpConnection.write(msg.encode());
+    override void write(in ubyte[] bytes) {
+        _tcpConnection.write(bytes);
     }
 
     void newMessage(in string topic, in string payload) {
