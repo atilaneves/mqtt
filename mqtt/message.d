@@ -250,6 +250,13 @@ public:
         this.qos = qos.dup;
     }
 
+    this(MqttFixedHeader header) {
+        super(header);
+        auto cereal = new Decerealiser(header.bytes);
+        msgId = cereal.value!ushort();
+        qos = cereal.bytes.dup;
+    }
+
     const(ubyte[]) encode() const {
         auto cereal = new Cerealiser();
         cereal ~= msgId;

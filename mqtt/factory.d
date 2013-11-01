@@ -17,6 +17,8 @@ struct MqttFactory {
             return new MqttPublish(fixedHeader);
         case MqttType.SUBSCRIBE:
             return new MqttSubscribe(fixedHeader);
+        case MqttType.SUBACK:
+            return new MqttSuback(fixedHeader);
         default:
             stderr.writeln("Unknown MQTT message type ", fixedHeader.type);
             return null;

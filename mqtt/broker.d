@@ -33,7 +33,7 @@ struct MqttBroker {
         _subscriptions ~= Subscription(subscriber, topics);
     }
 
-    bool matches(in string actualTopic, in string subscriptionTopic, ) const {
+    bool matches(in string actualTopic, in string subscriptionTopic) const {
         if(subscriptionTopic == actualTopic) return true;
         if(subscriptionTopic.length > actualTopic.length) return false;
 
