@@ -14,7 +14,7 @@ interface MqttSubscriber {
 }
 
 
-abstract class MqttBroker {
+struct MqttBroker {
     void publish(in string topic, in string payload) {
         foreach(s; _subscriptions) {
             foreach(t; s.topics) {

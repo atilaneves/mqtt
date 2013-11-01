@@ -10,11 +10,8 @@ class TestMqttSubscriber: MqttSubscriber {
     string[] messages;
 }
 
-class TestMqttBroker: MqttBroker {
-}
-
 void testSubscribe() {
-    auto broker = new TestMqttBroker();
+    auto broker = MqttBroker();
 
     auto subscriber = new TestMqttSubscriber();
     broker.publish("topics/foo", "my foo is foo");
@@ -33,7 +30,7 @@ void testSubscribe() {
 
 
 void testWildCards() {
-   auto broker = new TestMqttBroker();
+   auto broker = MqttBroker();
    checkTrue(broker.matches("foo/bar/baz", "foo/bar/baz"));
    checkTrue(broker.matches("foo/bar", "foo/+"));
    checkTrue(broker.matches("foo/baz", "foo/+"));
@@ -49,7 +46,7 @@ void testWildCards() {
 
 
 void testSubscribeWithWildCards() {
-    auto broker = new TestMqttBroker();
+    auto broker = MqttBroker();
     auto subscriber1 = new TestMqttSubscriber();
 
     broker.subscribe(subscriber1, ["topics/foo/+"]);
