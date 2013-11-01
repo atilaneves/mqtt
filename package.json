@@ -7,6 +7,6 @@
         "Atila Neves"
     ],
     "dependencies": {
-        "vibe-d": ">=0.7.12"
-    }
+        "vibe-d": ">=0.7.12",
+}
 }

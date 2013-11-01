@@ -1,5 +1,36 @@
 import vibe.d;
+import mqtt.server;
+import mqtt.message;
+import std.stdio;
+
+
+class MqttTcpConnection: MqttConnection {
+    this(TCPConnection tcpConnection) {
+        writeln("new TCP connection");
+        _tcpConnection = tcpConnection;
+        writeln("Reading ", _tcpConnection.leastSize, " bytes");
+        auto bytes = new ubyte[_tcpConnection.leastSize];
+        _tcpConnection.read(bytes);
+        super(bytes);
+    }
+
+    override void newMessage(MqttMessage msg) {
+        //_tcpConnection.write(msg.encode());
+    }
+
+    void newMessage(in string topic, in string payload) {
+
+    }
+
+
+private:
+
+    TCPConnection _tcpConnection;
+}
+
 
 shared static this() {
-    listenTCP(1883, (conn){ conn.write(conn); });
+    auto server = new MqttServer();
+    writeln("About to listen");
+    listenTCP(1883, (conn){server.newConnection(new MqttTcpConnection(conn)); });
 }

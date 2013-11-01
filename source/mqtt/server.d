@@ -10,6 +10,7 @@ import std.array;
 
 class MqttServer {
     void newConnection(MqttConnection connection) {
+        writeln("new connection");
         const connect = connection.connectMessage;
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.clientId.length < 1 || connect.clientId.length > 23) {
@@ -40,19 +41,20 @@ private:
     MqttBroker _broker;
 }
 
-abstract class MqttConnection: MqttSubscriber {
+class MqttConnection: MqttSubscriber {
     this(in ubyte[] bytes) {
         connectMessage = cast(MqttConnect)MqttFactory.create(bytes);
         if(connectMessage is null) {
             stderr.writeln("Invalid connect message");
         }
+        writeln("Received connect message from client id ", connectMessage.clientId);
     }
 
     final void write(in ubyte[] bytes) {
         newMessage(MqttFactory.create(bytes));
     }
 
-    void newMessage(MqttMessage msg);
+    abstract void newMessage(MqttMessage msg);
 
     MqttConnect connectMessage;
 }
