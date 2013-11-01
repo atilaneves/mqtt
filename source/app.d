@@ -1,36 +1,27 @@
 import vibe.d;
 import mqtt.server;
-import mqtt.message;
+import mqtt.tcp;
+
 import std.stdio;
 
 
-class MqttTcpConnection: MqttConnection {
-    this(TCPConnection tcpConnection) {
-        writeln("new TCP connection");
-        _tcpConnection = tcpConnection;
-        writeln("Reading ", _tcpConnection.leastSize, " bytes");
-        auto bytes = new ubyte[_tcpConnection.leastSize];
-        _tcpConnection.read(bytes);
-        super(bytes);
-    }
+private MqttServer gServer;
 
-    override void write(in ubyte[] bytes) {
-        _tcpConnection.write(bytes);
-    }
-
-    void newMessage(in string topic, in string payload) {
-
-    }
-
-
-private:
-
-    TCPConnection _tcpConnection;
+shared static this() {
+    setLogLevel(LogLevel.debugV);
+    gServer = new MqttServer();
+    writeln("About to listen");
+    listenTCP_s(1893, &accept);
 }
 
 
-shared static this() {
-    auto server = new MqttServer();
-    writeln("About to listen");
-    listenTCP(1883, (conn){server.newConnection(new MqttTcpConnection(conn)); });
+void accept(TCPConnection tcpConnection) {
+    writeln("New TCP connection");
+    if (!tcpConnection.waitForData(10.seconds())) {
+        logDebug("Client didn't send the initial request in a timely manner. Closing connection.");
+    }
+
+    auto mqttConnection = new MqttTcpConnection(gServer, tcpConnection);
+    gServer.newConnection(mqttConnection);
+    mqttConnection.run();
 }

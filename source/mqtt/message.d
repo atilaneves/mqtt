@@ -1,6 +1,7 @@
 module mqtt.message;
 
 
+import mqtt.server;
 import cerealed.cerealiser;
 import cerealed.decerealiser;
 import std.stdio;
@@ -103,6 +104,7 @@ class MqttMessage {
     this(MqttFixedHeader header) {
         fixedHeader = header;
     }
+    //abstract void handle(MqttServer);
     MqttFixedHeader fixedHeader;
 }
 
@@ -128,7 +130,9 @@ public:
         if(hasPassword) password = cereal.value!string;
     }
 
-    @property bool isBadClientId() const { return clientId.length > 23; }
+    @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
+     void handle(MqttServer server) {
+    }
 
     string protoName;
     ubyte protoVersion;

@@ -13,11 +13,12 @@ class MqttServer {
         writeln("MqttServer new connection");
         const connect = connection.connectMessage;
         auto code = MqttConnack.Code.ACCEPTED;
-        if(connect.clientId.length < 1 || connect.clientId.length > 23) {
+        if(connect.isBadClientId) {
             code = MqttConnack.Code.BAD_ID;
         }
 
         connection.write((new MqttConnack(code)).encode());
+        _connections ~= connection;
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
@@ -27,6 +28,7 @@ class MqttServer {
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = array(map!(a => a.qos)(topics));
         const suback = new MqttSuback(msgId, qos);
+        writeln("MqttServer received subscription, sending back SUBACK");
         connection.write(suback.encode());
         _broker.subscribe(connection, topics);
     }
@@ -39,6 +41,7 @@ class MqttServer {
 private:
 
     MqttBroker _broker;
+    MqttConnection[] _connections;
 }
 
 class MqttConnection: MqttSubscriber {
