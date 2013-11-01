@@ -3,6 +3,7 @@ module mqtt.tcp;
 
 import mqtt.server;
 import mqtt.factory;
+import mqtt.message;
 import vibe.d;
 import std.stdio;
 
@@ -35,7 +36,9 @@ class MqttTcpConnection: MqttConnection {
     }
 
     void newMessage(in string topic, in string payload) {
-
+        const publish = new MqttPublish(topic, payload);
+        writeln("TCP connection sending back to client");
+        _tcpConnection.write(publish.encode());
     }
 
     override void disconnect() {
