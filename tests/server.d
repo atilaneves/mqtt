@@ -11,7 +11,13 @@ class TestMqttConnection: MqttConnection {
     override void newMessage(MqttMessage msg) {
         lastMsg = msg;
     }
+
+    void newMessage(in string topic, in string payload) {
+        payloads ~= payload;
+    }
+
     MqttMessage lastMsg;
+    string[] payloads;
 }
 
 void testConnect() {
@@ -96,10 +102,16 @@ void testSubscribe() {
     auto connection = new TestMqttConnection(bytes);
     server.newConnection(connection);
 
+    server.publish("foo/bar/baz", "interesting stuff");
+    checkEqual(connection.payloads, []);
+
     server.subscribe(connection, 42, ["foo/bar/+"]);
     const suback = cast(MqttSuback)connection.lastMsg;
     checkNotNull(suback);
     checkEqual(suback.msgId, 42);
     checkEqual(suback.qos, [0]);
 
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff"]);
 }

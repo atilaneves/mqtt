@@ -27,6 +27,11 @@ class MqttServer {
         const qos = array(map!(a => a.qos)(topics));
         const suback = new MqttSuback(msgId, qos);
         connection.write(suback.encode());
+        _broker.subscribe(connection, topics);
+    }
+
+    void publish(in string topic, in string payload) {
+        _broker.publish(topic, payload);
     }
 
 
@@ -35,7 +40,7 @@ private:
     MqttBroker _broker;
 }
 
-abstract class MqttConnection {
+abstract class MqttConnection: MqttSubscriber {
     this(in ubyte[] bytes) {
         connectMessage = cast(MqttConnect)MqttFactory.create(bytes);
         if(connectMessage is null) {
