@@ -1,4 +1,4 @@
-module mqtt.server;
+module mqtt.broker;
 
 
 import mqtt.message;
@@ -14,7 +14,7 @@ interface MqttSubscriber {
 }
 
 
-abstract class MqttServer {
+abstract class MqttBroker {
     void publish(in string topic, in string payload) {
         foreach(s; _subscriptions) {
             foreach(t; s.topics) {
