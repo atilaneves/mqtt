@@ -35,7 +35,7 @@ public:
     ubyte qos;
     bool retain;
     uint remaining;
-    const (ubyte)[] remainingBytes;
+    Decerealiser cereal;
 
     this(MqttType type, bool dup, ubyte qos, bool retain, uint remaining = 0) {
         this.type = type;
@@ -46,7 +46,7 @@ public:
     }
 
     this(in ubyte[] bytes) {
-        auto cereal = new Decerealiser(bytes);
+        cereal = new Decerealiser(bytes);
         _byte1 = cereal.value!ubyte();
 
         type = cast(MqttType)(_byte1 >> 4);
@@ -55,11 +55,10 @@ public:
         retain = cast(bool)(_byte1 & 0x01);
 
         remaining = getRemainingSize(cereal);
-        remainingBytes = cereal.bytes.dup;
 
-        if(remaining < remainingBytes.length) {
+        if(remaining < cereal.bytes.length) {
             stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining,
-                           ". Real remaining size: ", remainingBytes.length);
+                           ". Real remaining size: ", cereal.bytes.length);
         }
     }
 
@@ -71,7 +70,7 @@ public:
         return cereal.bytes;
     }
 
-    @property const(ubyte[]) bytes() const { return remainingBytes; }
+    @property const(ubyte[]) bytes() const { return cereal.bytes; }
 
 private:
     ubyte _byte1;
@@ -118,7 +117,7 @@ class MqttConnect: MqttMessage {
 public:
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = new Decerealiser(fixedHeader.bytes);
+        auto cereal = fixedHeader.cereal;
         protoName = cereal.value!string;
         protoVersion = cereal.value!ubyte;
         ubyte flags = cereal.value!ubyte;
@@ -172,7 +171,7 @@ class MqttConnack: MqttMessage {
 
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = new Decerealiser(header.bytes);
+        auto cereal = header.cereal;
         cereal.value!ubyte; //reserver value
         this.code = cast(Code)cereal.value!ubyte;
     }
@@ -192,7 +191,7 @@ class MqttPublish: MqttMessage {
 public:
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = new Decerealiser(fixedHeader.bytes);
+        auto cereal = fixedHeader.cereal;
         topic = cereal.value!string;
         auto payloadLen = fixedHeader.remaining - (topic.length + 2);
         if(fixedHeader.qos > 0) {
@@ -251,7 +250,7 @@ public:
             stderr.writeln("SUBSCRIBE message with qos ", header.qos, ", should be 1");
         }
 
-        auto cereal = new Decerealiser(fixedHeader.bytes);
+        auto cereal = fixedHeader.cereal;
         msgId = cereal.value!ushort;
         while(cereal.bytes.length) {
             topics ~= Topic(cereal.value!string, cereal.value!ubyte);
@@ -282,7 +281,7 @@ public:
 
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = new Decerealiser(header.bytes);
+        auto cereal = header.cereal;
         msgId = cereal.value!ushort();
         qos = cereal.bytes.dup;
     }

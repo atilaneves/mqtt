@@ -7,7 +7,7 @@ import std.stdio;
 
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
-        const fixedHeader = MqttFixedHeader(bytes);
+        auto fixedHeader = MqttFixedHeader(bytes);
         const mqttSize = fixedHeader.remaining + MqttFixedHeader.SIZE;
         if(mqttSize != bytes.length) {
             stderr.writeln("Malformed packet. Actual size: ", bytes.length,

@@ -6,6 +6,7 @@ import std.algorithm;
 import std.array;
 import std.algorithm;
 import std.range;
+import std.parallelism;
 
 
 interface MqttSubscriber {
@@ -15,7 +16,10 @@ interface MqttSubscriber {
 
 struct MqttBroker {
     void publish(in string topic, in string payload) {
-        foreach(s; _subscriptions) s.handlePublish(topic, payload);
+        auto topParts = array(splitter(topic, "/"));
+        foreach(s; _subscriptions) {
+            s.handlePublish(topParts, topic, payload);
+        }
     }
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
@@ -29,12 +33,10 @@ struct MqttBroker {
     static bool matches(in string topic, in string pattern) {
         if(pattern.length > topic.length) return false;
         if(pattern == topic) return true;
-        return matches(topic, array(splitter(pattern, "/")));
+        return matches(array(splitter(topic, "/")), array(splitter(pattern, "/")));
     }
 
-    static bool matches(in string topic, in string[] patParts) {
-        const topParts = array(splitter(topic,  "/"));
-
+    static bool matches(in string[] topParts, in string[] patParts) {
         if(patParts.length > topParts.length) return false;
         if(patParts.length != topParts.length && find(patParts, "#").empty) return false;
 
@@ -52,19 +54,18 @@ private:
     struct Subscription {
         this(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
             this._subscriber = subscriber;
-            this._topics = topics;
-            // foreach(t; topics) {
-            //      this._topics ~= TopicPattern(array(splitter(t.topic, "/")), t.qos);
-            // }
+            foreach(t; topics) {
+                this._topics ~= TopicPattern(array(splitter(t.topic, "/")), t.qos);
+            }
         }
 
         void newMessage(in string topic, in string payload) {
             _subscriber.newMessage(topic, payload);
         }
 
-        void handlePublish(in string topic, in string payload) {
+        void handlePublish(in string[] topParts, in string topic, in string payload) {
             foreach(t; _topics) {
-                if(MqttBroker.matches(topic, t.topic)) {
+                if(MqttBroker.matches(topParts, t.pattern)) {
                     _subscriber.newMessage(topic, payload);
                 }
             }
@@ -76,8 +77,7 @@ private:
             string[] pattern;
             ubyte qos;
         }
-        const MqttSubscribe.Topic[] _topics;
-        //TopicPattern[] _topics;
+        TopicPattern[] _topics;
     }
 
     Subscription[] _subscriptions;
