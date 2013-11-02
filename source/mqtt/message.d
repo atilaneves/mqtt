@@ -5,7 +5,7 @@ import mqtt.server;
 import cerealed.cerealiser;
 import cerealed.decerealiser;
 import std.stdio;
-
+import std.algorithm;
 
 enum MqttType {
     RESERVED1   = 0,
@@ -53,8 +53,15 @@ public:
         retain = cast(bool)(_byte1 & 0x01);
 
         remaining = getRemainingSize(cereal);
-
         remainingBytes = cereal.bytes;
+
+        if(remaining != remainingBytes.length) {
+            stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining);
+            if(remaining > remainingBytes.length) {
+                stderr.writeln("Resizing to ", remainingBytes.length);
+                remaining = cast(uint)remainingBytes.length;
+            }
+        }
     }
 
     auto encode() const {

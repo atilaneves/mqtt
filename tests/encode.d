@@ -14,7 +14,7 @@ void testEncodeFixedHeader() {
 }
 
 void testDecodeFixedHeader() {
-    const msg = MqttFixedHeader([0x3c, 0x5]);
+    const msg = MqttFixedHeader([0x3c, 0x5, 0, 0, 0, 0, 0]);
     checkEqual(msg.type, MqttType.PUBLISH);
     checkEqual(msg.dup, true);
     checkEqual(msg.qos, 2);
@@ -44,15 +44,21 @@ void testEncodeBigRemaining() {
 
 void testDecodeBigRemaining() {
     {
-        const msg = MqttFixedHeader([0x12, 0xc1, 0x02]);
+        ubyte[] bytes = [0x12, 0xc1, 0x02];
+        bytes.length += 321;
+        const msg = MqttFixedHeader(bytes);
         checkEqual(msg.remaining, 321);
     }
     {
-        const msg = MqttFixedHeader([0x12, 0x83, 0x02]);
+        ubyte[] bytes = [0x12, 0x83, 0x02];
+        bytes.length += 259;
+        const msg = MqttFixedHeader(bytes);
         checkEqual(msg.remaining, 259);
     }
     {
-        const msg = MqttFixedHeader([0x12, 0x85, 0x80, 0x80, 0x01]);
+        ubyte[] bytes = [0x12, 0x85, 0x80, 0x80, 0x01];
+        bytes.length += 2_097_157;
+        const msg = MqttFixedHeader(bytes);
         checkEqual(msg.remaining, 2_097_157);
     }
 }
@@ -129,6 +135,25 @@ void testDecodePublishWithNoMsgId() {
     checkEqual(publish.msgId, 0); //no message id
 }
 
+void testDecodePublishWithBadSize() {
+    ubyte[] bytes = [ 0x30, 0x60, //fixed header with wrong (too big) size
+                      0x00, 0x03, 't', 'u', 'p', //topic name
+                      'b', 'o', 'r', 'g', //payload
+        ];
+
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    checkEqual(msg.fixedHeader.remaining, 9);
+
+    const publish = cast(MqttPublish)msg;
+    checkNotNull(publish);
+
+    checkEqual(publish.topic, "tup");
+    checkEqual(publish.payload, "borg");
+    checkEqual(publish.msgId, 0); //no message id
+}
+
+
 void testEncodePublish() {
     checkEqual((new MqttPublish(false, 2, true, "foo", "info", 12)).encode(),
                [0x35, 0x0d, //header
@@ -167,7 +192,6 @@ void testSubscribe() {
     checkEqual(subscribe.topics,
                [MqttSubscribe.Topic("first", 1), MqttSubscribe.Topic("second", 2)]);
 }
-
 
 void testSuback() {
     checkEqual((new MqttSuback(12, [1, 2, 0, 2])).encode(),
