@@ -19,6 +19,8 @@ struct MqttFactory {
             return new MqttSubscribe(fixedHeader);
         case MqttType.SUBACK:
             return new MqttSuback(fixedHeader);
+        case MqttType.PINGREQ:
+            return new MqttPingReq(fixedHeader);
         case MqttType.DISCONNECT:
             return new MqttDisconnect(fixedHeader);
         default:

@@ -241,6 +241,10 @@ class MqttSubscribe: MqttMessage {
 public:
     this(MqttFixedHeader header) {
         super(header);
+        if(header.qos != 1) {
+            stderr.writeln("SUBSCRIBE message with qos ", header.qos, ", should be 1");
+        }
+
         auto cereal = new Decerealiser(fixedHeader.bytes);
         msgId = cereal.value!ushort;
         while(cereal.bytes.length) {
@@ -296,5 +300,25 @@ class MqttDisconnect: MqttMessage {
 
     override void handle(MqttServer server, MqttConnection connection) const {
         connection.disconnect();
+    }
+}
+
+class MqttPingReq: MqttMessage {
+    this(MqttFixedHeader header) {
+        super(header);
+    }
+
+    override void handle(MqttServer server, MqttConnection connection) const {
+        throw new Exception("handle error");
+    }
+}
+
+class MqttPingResp: MqttMessage {
+    this() {
+        super(MqttFixedHeader(MqttType.PINGRESP, false, 0, false, 0));
+    }
+
+    const(ubyte[]) encode() const {
+        return [0xd0, 0x00];
     }
 }

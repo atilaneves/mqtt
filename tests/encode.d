@@ -176,3 +176,14 @@ void testSuback() {
                  0x01, 0x02, 0x00, 0x02, //qos
                  ]);
 }
+
+void testPingReq() {
+    ubyte[] bytes = [ 0xc0, 0x00 ];
+    const pingReq = MqttFactory.create(bytes);
+    checkNotNull(pingReq);
+}
+
+void testPingResp() {
+    checkEqual((new MqttPingResp()).encode(),
+               [0xd0, 0x00]);
+}
