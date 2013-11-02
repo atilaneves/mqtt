@@ -6,19 +6,13 @@ import std.stdio;
 import std.conv;
 
 struct MqttStream {
-    this(ubyte[] bytes) {
-        _bytes = bytes;
-        _header = MqttFixedHeader(bytes);
-    }
-
     void opOpAssign(string op: "~")(ubyte[] bytes) {
-        if(empty()) _header = MqttFixedHeader(bytes);
         _bytes ~= bytes;
+        updateBytes();
     }
 
-    bool isDone() {
-        //+2 for the fixed header itself
-        return _bytes.length >= _header.remaining + 2;
+    bool hasMessages() const {
+        return _bytes.length >= _remaining + MqttFixedHeader.SIZE;
     }
 
     bool empty() {
@@ -26,19 +20,34 @@ struct MqttStream {
     }
 
     MqttMessage createMessage() {
-        if(!isDone()) return null;
-        auto msg = MqttFactory.create(_bytes);
-        reset();
+        if(!hasMessages()) return null;
+
+        const slice = slice();
+        auto msg = MqttFactory.create(slice);
+
+        _remaining = 0; //reset
+        if(slice.length < _bytes.length) {
+            _bytes = _bytes[slice.length..$]; //next msg
+        } else {
+            _bytes = []; //no more msgs
+        }
+
         return msg;
     }
 
 private:
 
     const(ubyte)[] _bytes;
-    MqttFixedHeader _header;
+    int _remaining;
 
-    void reset() {
-        _bytes = [];
-        _header = MqttFixedHeader();
+    void updateBytes() {
+        if(!_remaining && _bytes.length >= MqttFixedHeader.SIZE) {
+            _remaining = MqttFixedHeader(slice()).remaining;
+        }
+    }
+
+    const (ubyte[]) slice() const {
+        immutable msgSize = _remaining + MqttFixedHeader.SIZE;
+        return _bytes[0..msgSize];
     }
 }

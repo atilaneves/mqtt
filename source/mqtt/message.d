@@ -28,6 +28,8 @@ enum MqttType {
 
 struct MqttFixedHeader {
 public:
+    enum SIZE = 2;
+
     MqttType type;
     bool dup;
     ubyte qos;
@@ -56,7 +58,8 @@ public:
         remainingBytes = cereal.bytes.dup;
 
         if(remaining < remainingBytes.length) {
-            stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining);
+            stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining,
+                           ". Real remaining size: ", remainingBytes.length);
         }
     }
 
