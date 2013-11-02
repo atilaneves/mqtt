@@ -2,6 +2,7 @@ import unit_threaded.check;
 import mqtt.server;
 import mqtt.message;
 import mqtt.factory;
+import std.stdio;
 
 
 class TestMqttConnection: MqttConnection {
@@ -10,8 +11,8 @@ class TestMqttConnection: MqttConnection {
         connected = true;
     }
 
-
     override void write(in ubyte[] bytes) {
+        writeln("TestMqttConnection got a message from the server");
         lastMsg = MqttFactory.create(bytes);
     }
 
@@ -219,4 +220,50 @@ void testStressPure() {
         server.publish(client ~ "/foo/bar", "oh noes!!!");
         checkEqual(connection.payloads, ["interesting stuff"]);
     }
+}
+
+void testPing() {
+    auto server = new MqttServer();
+    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x00, 0x0a, //keepalive of 10
+                      0x00, 0x03, 'c', 'i', 'd', //client ID
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x01, 'p', 'w', //password
+        ];
+
+    auto connection = new TestMqttConnection(bytes);
+    server.newConnection(connection);
+
+    server.ping(connection);
+    const pingResp = cast(MqttPingResp)connection.lastMsg;
+    checkNotNull(pingResp);
+}
+
+
+void testPingWithMessage() {
+    auto server = new MqttServer();
+    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x00, 0x0a, //keepalive of 10
+                      0x00, 0x03, 'c', 'i', 'd', //client ID
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x01, 'p', 'w', //password
+        ];
+
+    auto connection = new TestMqttConnection(bytes);
+    server.newConnection(connection);
+
+    const msg = MqttFactory.create([0xc0, 0x00]); //ping request
+    msg.handle(server, connection);
+    const pingResp = cast(MqttPingResp)connection.lastMsg;
+    checkNotNull(pingResp);
 }

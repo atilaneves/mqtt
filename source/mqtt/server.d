@@ -37,6 +37,11 @@ class MqttServer {
         _broker.publish(topic, payload);
     }
 
+    void ping(MqttConnection connection) const {
+        writeln("Ping");
+        connection.write((new MqttPingResp()).encode());
+    }
+
 
 private:
 

@@ -309,7 +309,7 @@ class MqttPingReq: MqttMessage {
     }
 
     override void handle(MqttServer server, MqttConnection connection) const {
-        throw new Exception("handle error");
+        server.ping(connection);
     }
 }
 
