@@ -11,6 +11,7 @@ import std.array;
 class MqttServer {
     void newConnection(MqttConnection connection) {
         const connect = connection.connectMessage;
+        if(!connect) return;
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
             code = MqttConnack.Code.BAD_ID;

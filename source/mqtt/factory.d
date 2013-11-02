@@ -8,6 +8,12 @@ import std.stdio;
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
         const fixedHeader = MqttFixedHeader(bytes);
+        const mqttSize = fixedHeader.remaining + 2; //2 for the hdr itself
+        if(mqttSize != bytes.length) {
+            stderr.writeln("Malformed packet. Actual size: ", bytes.length,
+                           ". Advertised size: ", mqttSize);
+            return null;
+        }
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
             return new MqttConnect(fixedHeader);

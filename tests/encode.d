@@ -64,7 +64,7 @@ void testDecodeBigRemaining() {
 }
 
 void testConnectMsg() {
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -77,7 +77,7 @@ void testConnectMsg() {
         ];
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 41);
+    checkEqual(msg.fixedHeader.remaining, 42);
 
     const connect = cast(MqttConnect)msg;
     checkNotNull(connect);
@@ -142,15 +142,7 @@ void testDecodePublishWithBadSize() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 9);
-
-    const publish = cast(MqttPublish)msg;
-    checkNotNull(publish);
-
-    checkEqual(publish.topic, "tup");
-    checkEqual(publish.payload, "borg");
-    checkEqual(publish.msgId, 0); //no message id
+    checkNull(msg);
 }
 
 

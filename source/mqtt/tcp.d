@@ -4,9 +4,8 @@ module mqtt.tcp;
 import mqtt.server;
 import mqtt.factory;
 import mqtt.message;
-import vibe.d;
 import std.stdio;
-
+import vibe.d;
 
 class MqttTcpConnection: MqttConnection {
     this(MqttServer server, TCPConnection tcpConnection) {

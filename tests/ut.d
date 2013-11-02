@@ -5,5 +5,5 @@ import unit_threaded.runner;
 
 
 int main(string[] args) {
-    return runTests!("encode", "broker", "server")(args);
+    return runTests!("encode", "broker", "server", "stream")(args);
 }

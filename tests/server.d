@@ -29,7 +29,7 @@ class TestMqttConnection: MqttConnection {
 
 void testConnect() {
     auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -38,7 +38,7 @@ void testConnect() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
@@ -51,7 +51,7 @@ void testConnect() {
 
 void testConnectBigId() {
    auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x3f, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -61,7 +61,7 @@ void testConnectBigId() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
@@ -73,7 +73,7 @@ void testConnectBigId() {
 
 void testConnectSmallId() {
    auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x27, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -82,7 +82,7 @@ void testConnectSmallId() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
@@ -94,7 +94,7 @@ void testConnectSmallId() {
 
 void testSubscribe() {
     auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -103,7 +103,7 @@ void testSubscribe() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
@@ -126,7 +126,7 @@ void testSubscribe() {
 
 void testSubscribeWithMessage() {
     auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -135,7 +135,7 @@ void testSubscribeWithMessage() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
@@ -188,7 +188,7 @@ void testStressPure() {
     import std.parallelism;
 
     auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -197,7 +197,7 @@ void testStressPure() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     string[] clients;
@@ -224,7 +224,7 @@ void testStressPure() {
 
 void testPing() {
     auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -233,7 +233,7 @@ void testPing() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
@@ -247,7 +247,7 @@ void testPing() {
 
 void testPingWithMessage() {
     auto server = new MqttServer();
-    ubyte[] bytes = [ 0x10, 0x29, //fixed header
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
                       0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
@@ -256,7 +256,7 @@ void testPingWithMessage() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
 
     auto connection = new TestMqttConnection(bytes);
