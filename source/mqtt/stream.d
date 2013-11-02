@@ -8,7 +8,7 @@ import std.conv;
 struct MqttStream {
     void opOpAssign(string op: "~")(ubyte[] bytes) {
         _bytes ~= bytes;
-        updateBytes();
+        updateRemaining();
     }
 
     bool hasMessages() const {
@@ -32,6 +32,8 @@ struct MqttStream {
             _bytes = []; //no more msgs
         }
 
+        updateRemaining();
+
         return msg;
     }
 
@@ -40,7 +42,7 @@ private:
     const(ubyte)[] _bytes;
     int _remaining;
 
-    void updateBytes() {
+    void updateRemaining() {
         if(!_remaining && _bytes.length >= MqttFixedHeader.SIZE) {
             _remaining = MqttFixedHeader(slice()).remaining;
         }

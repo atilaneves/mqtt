@@ -19,7 +19,9 @@ class MqttTcpConnection: MqttConnection {
     }
 
     override void write(in ubyte[] bytes) {
-        _tcpConnection.write(bytes);
+        if(_connected) {
+            _tcpConnection.write(bytes);
+        }
     }
 
     void run() {
@@ -29,13 +31,14 @@ class MqttTcpConnection: MqttConnection {
                 logDebug("persistent connection timeout!");
                 break;
             }
-            auto bytes = read();
-            stream ~= bytes;
-            if(stream.isDone()) {
-                logDebug("Creating mqttdata");
-                const mqttMsg = stream.createMessage();
-                if(mqttMsg) mqttMsg.handle(_server, this);
-            }
+
+            stream ~= read();
+
+            do {
+                const msg = stream.createMessage();
+                if(msg) msg.handle(_server, this);
+            } while(stream.hasMessages());
+
         } while(_tcpConnection.connected && _connected);
     }
 
