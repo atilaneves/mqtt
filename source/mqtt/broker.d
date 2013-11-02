@@ -13,6 +13,12 @@ interface MqttSubscriber {
     void newMessage(in string topic, in string payload);
 }
 
+bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
+    if(str1.length != str2.length) return false;
+    for(auto i = cast(long)str1.length - 1; i >= 0; --i)
+        if(str1[i] != str2[i]) return false;
+    return true;
+}
 
 struct MqttBroker {
     void publish(in string topic, in string payload) {
@@ -40,9 +46,10 @@ struct MqttBroker {
         if(patParts.length > topParts.length) return false;
         if(patParts.length != topParts.length && find(patParts, "#").empty) return false;
 
+        //for(auto i = cast(long)topParts.length - 1; i >= 0; --i) {
         for(int i = 0; i < topParts.length; ++i) {
             if(patParts[i] == "#") return true; //so not right
-            if(patParts[i] != "+" && patParts[i] != topParts[i]) return false;
+            if(patParts[i] != "+" && !patParts[i].revStrEquals(topParts[i])) return false;
         }
 
         return true;
