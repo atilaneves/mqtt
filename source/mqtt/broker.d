@@ -6,7 +6,6 @@ import std.algorithm;
 import std.array;
 import std.algorithm;
 import std.range;
-import std.regex;
 
 
 interface MqttSubscriber {
@@ -16,13 +15,7 @@ interface MqttSubscriber {
 
 struct MqttBroker {
     void publish(in string topic, in string payload) {
-        foreach(s; _subscriptions) {
-            foreach(t; s.topics) {
-                if(matches(topic, t.topic)) {
-                    s.newMessage(topic, payload);
-                }
-            }
-        }
+        foreach(s; _subscriptions) s.handlePublish(topic, payload);
     }
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
@@ -33,37 +26,59 @@ struct MqttBroker {
         _subscriptions ~= Subscription(subscriber, topics);
     }
 
-    bool matches(in string actualTopic, in string subscriptionTopic) const {
-        if(subscriptionTopic == actualTopic) return true;
-        if(subscriptionTopic.length > actualTopic.length) return false;
+    static bool matches(in string topic, in string pattern) {
+        if(pattern.length > topic.length) return false;
+        if(pattern == topic) return true;
+        return matches(topic, array(splitter(pattern, "/")));
+    }
 
-        const subParts = array(splitter(subscriptionTopic, "/"));
-        const actParts = array(splitter(actualTopic, "/"));
+    static bool matches(in string topic, in string[] patParts) {
+        const topParts = array(splitter(topic,  "/"));
 
-        if(subParts.length < actParts.length && !find(subParts, "#")) return false;
-        return !match(actualTopic, wildcardsToRegex(subscriptionTopic)).empty;
+        if(patParts.length > topParts.length) return false;
+        if(patParts.length != topParts.length && find(patParts, "#").empty) return false;
+
+        for(int i = 0; i < topParts.length; ++i) {
+            if(patParts[i] == "#") return true; //so not right
+            if(patParts[i] != "+" && patParts[i] != topParts[i]) return false;
+        }
+
+        return true;
     }
 
 
 private:
 
     struct Subscription {
-        MqttSubscriber subscriber;
-        const MqttSubscribe.Topic[] topics;
-        void newMessage(in string topic, in string payload) {
-            subscriber.newMessage(topic, payload);
+        this(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
+            this._subscriber = subscriber;
+            this._topics = topics;
+            // foreach(t; topics) {
+            //      this._topics ~= TopicPattern(array(splitter(t.topic, "/")), t.qos);
+            // }
         }
+
+        void newMessage(in string topic, in string payload) {
+            _subscriber.newMessage(topic, payload);
+        }
+
+        void handlePublish(in string topic, in string payload) {
+            foreach(t; _topics) {
+                if(MqttBroker.matches(topic, t.topic)) {
+                    _subscriber.newMessage(topic, payload);
+                }
+            }
+        }
+
+    private:
+        MqttSubscriber _subscriber;
+        static struct TopicPattern {
+            string[] pattern;
+            ubyte qos;
+        }
+        const MqttSubscribe.Topic[] _topics;
+        //TopicPattern[] _topics;
     }
 
     Subscription[] _subscriptions;
-
-    auto wildcardsToRegex(in string topic) const {
-        enum plusSlashRegex = ctRegex!r"\+/";
-        enum plusEndRegex = ctRegex!r"\+$";
-        enum hashRegex = ctRegex!r"#";
-
-        const endPlus = replace(topic, plusEndRegex, r"[^/]+$$");
-        const plus = replace(endPlus, plusSlashRegex, r"[^/]+/");
-        return "^" ~ replace(plus, hashRegex, r"\w+(/\w+)*") ~ "$";
-    }
 }

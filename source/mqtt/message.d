@@ -262,7 +262,7 @@ public:
         server.subscribe(connection, msgId, topics);
     }
 
-    struct Topic {
+    static struct Topic {
         string topic;
         ubyte qos;
     }
