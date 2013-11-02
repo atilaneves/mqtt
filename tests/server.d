@@ -16,7 +16,7 @@ class TestMqttConnection: MqttConnection {
         lastMsg = MqttFactory.create(bytes);
     }
 
-    void newMessage(in string topic, in string payload) {
+    override void newMessage(in string topic, in string payload) {
         payloads ~= payload;
     }
 

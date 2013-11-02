@@ -33,7 +33,7 @@ public:
     ubyte qos;
     bool retain;
     uint remaining;
-    const ubyte[] remainingBytes;
+    const (ubyte)[] remainingBytes;
 
     this(MqttType type, bool dup, ubyte qos, bool retain, uint remaining = 0) {
         this.type = type;
@@ -53,7 +53,7 @@ public:
         retain = cast(bool)(_byte1 & 0x01);
 
         remaining = getRemainingSize(cereal);
-        remainingBytes = cereal.bytes;
+        remainingBytes = cereal.bytes.dup;
 
         if(remaining < remainingBytes.length) {
             stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining);
@@ -211,9 +211,9 @@ public:
     }
 
     this(in bool dup, in ubyte qos, in bool retain, in string topic, in string payload, in ushort msgId = 0) {
-        immutable topicLen = cast(uint)topic.length + 2; //2 for length
+        const topicLen = cast(uint)topic.length + 2; //2 for length
         auto remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
-        remaining += payload.length + 2;
+        remaining += payload.length;
         super(MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining));
         this.topic = topic;
         this.payload = payload;
@@ -226,8 +226,8 @@ public:
         if(fixedHeader.qos) {
             cereal ~= msgId;
         }
-        cereal ~= payload;
-        return fixedHeader.encode() ~ cereal.bytes;
+
+        return fixedHeader.encode() ~ cereal.bytes ~ cast(ubyte[])payload;
     }
 
     override void handle(MqttServer server, MqttConnection connection) const {

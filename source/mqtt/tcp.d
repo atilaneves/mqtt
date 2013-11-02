@@ -4,6 +4,7 @@ module mqtt.tcp;
 import mqtt.server;
 import mqtt.factory;
 import mqtt.message;
+import mqtt.stream;
 import std.stdio;
 import vibe.d;
 
@@ -22,22 +23,20 @@ class MqttTcpConnection: MqttConnection {
     }
 
     void run() {
+        auto stream = MqttStream();
         do {
             if(!_tcpConnection.waitForData(60.seconds) ) {
                 logDebug("persistent connection timeout!");
                 break;
             }
             auto bytes = read();
-            logDebug("Creating mqttdata");
-            const mqttData = MqttFactory.create(bytes);
-            if(mqttData) mqttData.handle(_server, this);
+            stream ~= bytes;
+            if(stream.isDone()) {
+                logDebug("Creating mqttdata");
+                const mqttMsg = stream.createMessage();
+                if(mqttMsg) mqttMsg.handle(_server, this);
+            }
         } while(_tcpConnection.connected && _connected);
-    }
-
-    void newMessage(in string topic, in string payload) {
-        const publish = new MqttPublish(topic, payload);
-        logDebug("TCP connection sending back to client");
-        _tcpConnection.write(publish.encode());
     }
 
     override void disconnect() {

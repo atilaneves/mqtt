@@ -12,6 +12,8 @@ struct MqttFactory {
         if(mqttSize != bytes.length) {
             stderr.writeln("Malformed packet. Actual size: ", bytes.length,
                            ". Advertised size: ", mqttSize);
+            stderr.writeln("Packet:");
+            stderr.writefln("%(0x%x %)", bytes);
             return null;
         }
         switch(fixedHeader.type) {

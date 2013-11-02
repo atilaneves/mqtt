@@ -148,19 +148,24 @@ void testDecodePublishWithBadSize() {
 
 void testEncodePublish() {
     checkEqual((new MqttPublish(false, 2, true, "foo", "info", 12)).encode(),
-               [0x35, 0x0d, //header
+               [0x35, 0x0b, //header
                 0x00, 0x03, 'f', 'o', 'o', //topic
                 0x00, 0x0c, //msgId
-                0x00, 0x04, 'i', 'n', 'f', 'o',
+                'i', 'n', 'f', 'o',
                ]
               );
 
     checkEqual((new MqttPublish(true, 0, false, "bars", "boo")).encode(),
-               [0x38, 0x0b, //header
+               [0x38, 0x09, //header
                 0x00, 0x04, 'b', 'a', 'r', 's',//topic
-                0x00, 0x03, 'b', 'o', 'o',
+                'b', 'o', 'o',
                ]
         );
+
+    checkEqual((new MqttPublish("topic", "payload")).encode(),
+               [0x30, 0x0e, //header
+                0x00, 0x05, 't', 'o', 'p', 'i', 'c',
+                'p', 'a', 'y', 'l', 'o', 'a', 'd']);
 }
 
 

@@ -2,6 +2,8 @@ module mqtt.stream;
 
 import mqtt.message;
 import mqtt.factory;
+import std.stdio;
+import std.conv;
 
 struct MqttStream {
     this(ubyte[] bytes) {
@@ -10,6 +12,7 @@ struct MqttStream {
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
+        if(empty()) _header = MqttFixedHeader(bytes);
         _bytes ~= bytes;
     }
 
@@ -18,13 +21,24 @@ struct MqttStream {
         return _bytes.length >= _header.remaining + 2;
     }
 
+    bool empty() {
+        return _bytes.length == 0;
+    }
+
     MqttMessage createMessage() {
         if(!isDone()) return null;
-        return MqttFactory.create(_bytes);
+        auto msg = MqttFactory.create(_bytes);
+        reset();
+        return msg;
     }
 
 private:
 
-    ubyte[] _bytes;
+    const(ubyte)[] _bytes;
     MqttFixedHeader _header;
+
+    void reset() {
+        _bytes = [];
+        _header = MqttFixedHeader();
+    }
 }
