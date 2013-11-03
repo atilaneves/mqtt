@@ -16,8 +16,8 @@ class TestMqttConnection: MqttConnection {
         lastMsg = MqttFactory.create(bytes);
     }
 
-    override void newMessage(in string topic, in string payload) {
-        payloads ~= payload;
+    override void newMessage(in string topic, in ubyte[] payload) {
+        payloads ~= cast(string)payload;
     }
 
     override void disconnect() { connected = false; }

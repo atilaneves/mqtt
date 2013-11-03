@@ -206,11 +206,11 @@ public:
         }
     }
 
-    this(in string topic, in string payload, ushort msgId = 0) {
+    this(in string topic, in ubyte[] payload, ushort msgId = 0) {
         this(false, 0, false, topic, payload, msgId);
     }
 
-    this(in bool dup, in ubyte qos, in bool retain, in string topic, in string payload, in ushort msgId = 0) {
+    this(in bool dup, in ubyte qos, in bool retain, in string topic, in ubyte[] payload, in ushort msgId = 0) {
         const topicLen = cast(uint)topic.length + 2; //2 for length
         auto remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
         remaining += payload.length;
@@ -235,7 +235,7 @@ public:
     }
 
     string topic;
-    string payload;
+    const(ubyte)[] payload;
     ushort msgId;
 }
 

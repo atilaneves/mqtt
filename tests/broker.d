@@ -3,8 +3,8 @@ import mqtt.broker;
 
 
 class TestMqttSubscriber: MqttSubscriber {
-    override void newMessage(in string topic, in string payload) {
-        messages ~= payload;
+    override void newMessage(in string topic, in ubyte[] payload) {
+        messages ~= cast(string)payload;
     }
 
     string[] messages;

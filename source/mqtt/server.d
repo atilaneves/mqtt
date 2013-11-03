@@ -26,7 +26,6 @@ class MqttServer {
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
-        //writeln("Subscribing to topic ", topics[0].topic, " with qos ", topics[0].qos);
         const qos = array(map!(a => a.qos)(topics));
         const suback = new MqttSuback(msgId, qos);
         connection.write(suback.encode());
@@ -34,12 +33,14 @@ class MqttServer {
     }
 
     void publish(in string topic, in string payload) {
-        //writeln("Publishing ", topic, " : ", payload);
+        publish(topic, cast(ubyte[])payload);
+    }
+
+    void publish(in string topic, in ubyte[] payload) {
         _broker.publish(topic, payload);
     }
 
     void ping(MqttConnection connection) const {
-        //writeln("Ping");
         connection.write((new MqttPingResp()).encode());
     }
 
@@ -58,7 +59,7 @@ class MqttConnection: MqttSubscriber {
         }
     }
 
-    override void newMessage(in string topic, in string payload) {
+    override void newMessage(in string topic, in ubyte[] payload) {
         const publish = new MqttPublish(topic, payload);
         write(publish.encode());
     }

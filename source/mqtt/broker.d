@@ -10,7 +10,7 @@ import std.parallelism;
 
 
 interface MqttSubscriber {
-    void newMessage(in string topic, in string payload);
+    void newMessage(in string topic, in ubyte[] payload);
 }
 
 bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
@@ -26,6 +26,10 @@ bool equalOrPlus(in string pat, in string top) {
 
 struct MqttBroker {
     void publish(in string topic, in string payload) {
+        publish(topic, cast(ubyte[])payload);
+    }
+
+    void publish(in string topic, in ubyte[] payload) {
         auto topParts = array(splitter(topic, "/"));
         foreach(s; _subscriptions) {
             s.handlePublish(topParts, topic, payload);
@@ -112,11 +116,11 @@ private:
             }
         }
 
-        void newMessage(in string topic, in string payload) {
+        void newMessage(in string topic, in ubyte[] payload) {
             _subscriber.newMessage(topic, payload);
         }
 
-        void handlePublish(in string[] topParts, in string topic, in string payload) {
+        void handlePublish(in string[] topParts, in string topic, in ubyte[] payload) {
             foreach(t; _topics) {
                 if(t.matches(topParts)) {
                     _subscriber.newMessage(topic, payload);
