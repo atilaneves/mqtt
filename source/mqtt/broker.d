@@ -13,14 +13,14 @@ interface MqttSubscriber {
     void newMessage(in string topic, in ubyte[] payload);
 }
 
-bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
+private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
     if(str1.length != str2.length) return false;
-    for(auto i = cast(long)str1.length - 1; i >= 0; --i)
+    for(long i = str1.length - 1; i >= 0; --i)
         if(str1[i] != str2[i]) return false;
     return true;
 }
 
-bool equalOrPlus(in string pat, in string top) {
+private bool equalOrPlus(in string pat, in string top) {
     return pat == "+" || pat.revStrEquals(top);
 }
 

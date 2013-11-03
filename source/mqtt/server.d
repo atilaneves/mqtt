@@ -18,7 +18,6 @@ class MqttServer {
         }
 
         connection.write((new MqttConnack(code)).encode());
-        _connections ~= connection;
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
@@ -48,7 +47,6 @@ class MqttServer {
 private:
 
     MqttBroker _broker;
-    MqttConnection[] _connections;
 }
 
 class MqttConnection: MqttSubscriber {
