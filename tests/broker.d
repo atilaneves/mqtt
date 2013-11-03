@@ -38,12 +38,12 @@ void testWildCards() {
    checkTrue(broker.matches("foo/bar", "foo/#"));
    checkTrue(broker.matches("foo/bar/baz", "foo/#"));
    checkTrue(broker.matches("foo/bar/baz/boo", "foo/#"));
-   //checkFalse(broker.matches("foo/bar/baz", "foo/#/bar"));
+   checkFalse(broker.matches("foo/bar/baz", "foo/#/bar"));
    checkTrue(broker.matches("foo/bla/bar/baz/boo/bogadog", "foo/+/bar/baz/#"));
-   //checkTrue(broker.matches("foo/bla/blue/red/bar/baz", "foo/#/bar/baz"));
-   //checkFalse(broker.matches("foo/bla/blue/red/bar/baz/black", "foo/#/bar/baz"));
-   //checkTrue(broker.matches("finance", "finance/#"));
-   //checkFalse(broker.matches("finance", "finance#"));
+   checkTrue(broker.matches("foo/bla/blue/red/bar/baz", "foo/#/bar/baz"));
+   checkFalse(broker.matches("foo/bla/blue/red/bar/baz/black", "foo/#/bar/baz"));
+   checkTrue(broker.matches("finance", "finance/#"));
+   checkFalse(broker.matches("finance", "finance#"));
    checkTrue(broker.matches("finance", "#"));
    checkTrue(broker.matches("finance/stock", "#"));
    checkFalse(broker.matches("finance/stock", "finance/stock/ibm"));

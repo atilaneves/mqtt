@@ -70,8 +70,6 @@ public:
         return cereal.bytes;
     }
 
-    @property const(ubyte[]) bytes() const { return cereal.bytes; }
-
 private:
     ubyte _byte1;
 

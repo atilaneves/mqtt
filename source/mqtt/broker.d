@@ -20,6 +20,10 @@ bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strin
     return true;
 }
 
+bool equalOrPlus(in string pat, in string top) {
+    return pat == "+" || pat.revStrEquals(top);
+}
+
 struct MqttBroker {
     void publish(in string topic, in string payload) {
         auto topParts = array(splitter(topic, "/"));
@@ -37,32 +41,74 @@ struct MqttBroker {
     }
 
     static bool matches(in string topic, in string pattern) {
-        if(pattern.length > topic.length) return false;
-        if(pattern == topic) return true;
         return matches(array(splitter(topic, "/")), array(splitter(pattern, "/")));
     }
 
     static bool matches(in string[] topParts, in string[] patParts) {
-        if(patParts.length > topParts.length) return false;
-        if(patParts.length != topParts.length && find(patParts, "#").empty) return false;
-
-        //for(auto i = cast(long)topParts.length - 1; i >= 0; --i) {
-        for(int i = 0; i < topParts.length; ++i) {
-            if(patParts[i] == "#") return true; //so not right
-            if(patParts[i] != "+" && !patParts[i].revStrEquals(topParts[i])) return false;
-        }
-
-        return true;
+        return PatternMatcherFactory.create(patParts).matches(topParts);
     }
 
 
 private:
 
-    struct Subscription {
+    static class PatternMatcher {
+        this(in string[] pattern) { _pattern = pattern; }
+        abstract bool matches(in string[] topic) const;
+        const string[] _pattern;
+    }
+
+    static class ExactMatcher: PatternMatcher {
+        this(in string[] pattern) { super(pattern); }
+        override bool matches(in string[] topic) const {
+            if(_pattern.length != topic.length) return false;
+            for(long i = topic.length - 1; i >= 0; --i) {
+                if(!_pattern[i].equalOrPlus(topic[i])) return false;
+            }
+            return true;
+        }
+    };
+
+    static class OneHashMatcher: PatternMatcher {
+        long _index; //index of the one hash
+        this(in string[] pattern, long index) {
+            super(pattern);
+            _index = index;
+        }
+        override bool matches(in string[] topic) const {
+            //+1 here allows "finance/#" to match "finance"
+            if(_pattern.length > topic.length + 1) return false;
+            for(long i = _index -1; i >=0 ; --i) { //starts with same thing
+                if(!_pattern[i].equalOrPlus(topic[i])) return false;
+            }
+            for(long i = _pattern.length - 1, j = topic.length - 1; i > _index; --i, --j) {
+                if(!_pattern[i].equalOrPlus(topic[j])) return false;
+            }
+            return true;
+        }
+    }
+
+    static class MultipleHashMatcher: PatternMatcher {
+        this(in string[] pattern) { super(pattern); }
+        override bool matches(in string[] topic) const {
+            //TODO: calculate match
+            return false;
+        }
+    }
+
+    static class PatternMatcherFactory {
+        static PatternMatcher create(in string[] pattern) {
+            const index = countUntil(pattern, "#");
+            if(index == -1) return new ExactMatcher(pattern);
+            return new OneHashMatcher(pattern, index);
+        }
+    }
+
+    static struct Subscription {
         this(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
             this._subscriber = subscriber;
             foreach(t; topics) {
-                this._topics ~= TopicPattern(array(splitter(t.topic, "/")), t.qos);
+                const matcher = PatternMatcherFactory.create(array(splitter(t.topic, "/")));
+                this._topics ~= TopicPattern(matcher, t.qos);
             }
         }
 
@@ -72,7 +118,7 @@ private:
 
         void handlePublish(in string[] topParts, in string topic, in string payload) {
             foreach(t; _topics) {
-                if(MqttBroker.matches(topParts, t.pattern)) {
+                if(t.matches(topParts)) {
                     _subscriber.newMessage(topic, payload);
                 }
             }
@@ -81,8 +127,9 @@ private:
     private:
         MqttSubscriber _subscriber;
         static struct TopicPattern {
-            string[] pattern;
+            const PatternMatcher _matcher;
             ubyte qos;
+            bool matches(in string[] topic) const { return _matcher.matches(topic); }
         }
         TopicPattern[] _topics;
     }
