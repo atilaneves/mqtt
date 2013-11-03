@@ -8,6 +8,7 @@ import std.stdio;
 import std.algorithm;
 import std.array;
 
+
 class MqttServer {
     void newConnection(MqttConnection connection) {
         const connect = connection.connectMessage;
@@ -58,8 +59,7 @@ class MqttConnection: MqttSubscriber {
     }
 
     override void newMessage(in string topic, in ubyte[] payload) {
-        const publish = new MqttPublish(topic, payload);
-        write(publish.encode());
+        write((new MqttPublish(topic, payload)).encode());
     }
 
 
