@@ -2,11 +2,10 @@
     "name": "mqtt",
     "description": "MQTT broker",
     "copyright": "Copyright (C) 2013 Me. All rights reserved.",
-    "homepage": "http://github.com/atilaneves/mqtt",
-    "authors": [
-        "Atila Neves"
-    ],
+    "homepage": "https://github.com/atilaneves/mqtt",
+    "authors": ["Atila Neves"],
+    "license": "BSD 3-clause",
     "dependencies": {
         "vibe-d": "~master",
-}
+    }
 }
