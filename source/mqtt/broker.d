@@ -64,7 +64,7 @@ private class PatternMatcher {
     const string[] _pattern;
 }
 
-private class ExactMatcher: PatternMatcher {
+private class PlusMatcher: PatternMatcher {
     this(in string[] pattern) { super(pattern); }
     override bool matches(in string[] topic) const {
         if(_pattern.length != topic.length) return false;
@@ -75,20 +75,15 @@ private class ExactMatcher: PatternMatcher {
     }
 };
 
-private class OneHashMatcher: PatternMatcher {
-    long _index; //index of the one hash
+private class HashMatcher: PatternMatcher {
     this(in string[] pattern, long index) {
         super(pattern);
-        _index = index;
     }
     override bool matches(in string[] topic) const {
         //+1 here allows "finance/#" to match "finance"
         if(_pattern.length > topic.length + 1) return false;
-        for(long i = _index -1; i >=0 ; --i) { //starts with same thing
+        for(long i = _pattern.length - 2; i >=0 ; --i) { //starts with same thing
             if(!_pattern[i].equalOrPlus(topic[i])) return false;
-        }
-        for(long i = _pattern.length - 1, j = topic.length - 1; i > _index; --i, --j) {
-            if(!_pattern[i].equalOrPlus(topic[j])) return false;
         }
         return true;
     }
@@ -105,8 +100,8 @@ private class MultipleHashMatcher: PatternMatcher {
 private class PatternMatcherFactory {
     static PatternMatcher create(in string[] pattern) {
         const index = countUntil(pattern, "#");
-        if(index == -1) return new ExactMatcher(pattern);
-        return new OneHashMatcher(pattern, index);
+        if(index == -1) return new PlusMatcher(pattern);
+        return new HashMatcher(pattern, index);
     }
 }
 
