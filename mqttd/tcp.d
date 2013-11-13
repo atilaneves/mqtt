@@ -1,10 +1,10 @@
-module mqtt.tcp;
+module mqttd.tcp;
 
 
-import mqtt.server;
-import mqtt.factory;
-import mqtt.message;
-import mqtt.stream;
+import mqttd.server;
+import mqttd.factory;
+import mqttd.message;
+import mqttd.stream;
 import std.stdio;
 import vibe.d;
 

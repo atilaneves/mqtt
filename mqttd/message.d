@@ -1,7 +1,7 @@
-module mqtt.message;
+module mqttd.message;
 
 
-import mqtt.server;
+import mqttd.server;
 import cerealed.cerealiser;
 import cerealed.decerealiser;
 import std.stdio;

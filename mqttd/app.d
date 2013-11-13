@@ -1,6 +1,6 @@
 import vibe.d;
-import mqtt.server;
-import mqtt.tcp;
+import mqttd.server;
+import mqttd.tcp;
 
 import std.stdio;
 

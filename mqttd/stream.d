@@ -1,7 +1,7 @@
-module mqtt.stream;
+module mqttd.stream;
 
-import mqtt.message;
-import mqtt.factory;
+import mqttd.message;
+import mqttd.factory;
 import std.stdio;
 import std.conv;
 

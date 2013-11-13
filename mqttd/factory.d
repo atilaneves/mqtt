@@ -1,7 +1,7 @@
-module mqtt.factory;
+module mqttd.factory;
 
 
-import mqtt.message;
+import mqttd.message;
 import std.stdio;
 
 

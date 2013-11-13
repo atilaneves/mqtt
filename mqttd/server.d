@@ -1,9 +1,9 @@
-module mqtt.server;
+module mqttd.server;
 
 
-import mqtt.message;
-import mqtt.factory;
-import mqtt.broker;
+import mqttd.message;
+import mqttd.factory;
+import mqttd.broker;
 import std.stdio;
 import std.algorithm;
 import std.array;

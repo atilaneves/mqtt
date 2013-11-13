@@ -1,7 +1,7 @@
-module mqtt.broker;
+module mqttd.broker;
 
 
-import mqtt.message;
+import mqttd.message;
 import std.algorithm;
 import std.array;
 
