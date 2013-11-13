@@ -1,5 +1,7 @@
+module tests.broker;
+
 import unit_threaded.check;
-import mqtt.broker;
+import mqttd.broker;
 
 
 class TestMqttSubscriber: MqttSubscriber {

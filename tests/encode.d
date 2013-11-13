@@ -1,6 +1,8 @@
+module tests.encode;
+
 import unit_threaded.check;
-import mqtt.message;
-import mqtt.factory;
+import mqttd.message;
+import mqttd.factory;
 
 
 void testEncodeFixedHeader() {

@@ -1,6 +1,8 @@
+module tests.stream;
+
 import unit_threaded.check;
-import mqtt.stream;
-import mqtt.message;
+import mqttd.stream;
+import mqttd.message;
 
 
 void testMqttInTwoPackets() {

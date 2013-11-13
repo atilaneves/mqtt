@@ -1,7 +1,9 @@
+module tests.server;
+
 import unit_threaded.check;
-import mqtt.server;
-import mqtt.message;
-import mqtt.factory;
+import mqttd.server;
+import mqttd.message;
+import mqttd.factory;
 import std.stdio;
 
 
