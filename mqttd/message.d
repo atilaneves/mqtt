@@ -47,12 +47,10 @@ public:
 
     this(in ubyte[] bytes) {
         cereal = new Decerealiser(bytes);
-        _byte1 = cereal.value!ubyte();
-
-        type = cast(MqttType)(_byte1 >> 4);
-        dup = cast(bool)(_byte1 & 0x04);
-        qos = (_byte1 & 0x06) >> 1;
-        retain = cast(bool)(_byte1 & 0x01);
+        type   = cast(MqttType) cereal.readBits(4);
+        dup    = cast(bool)     cereal.readBits(1);
+        qos    = cast(ubyte)    cereal.readBits(2);
+        retain = cast(bool)     cereal.readBits(1);
 
         remaining = getRemainingSize(cereal);
 
@@ -73,7 +71,6 @@ public:
     }
 
 private:
-    ubyte _byte1;
 
     uint getRemainingSize(Decerealiser cereal) {
         int multiplier = 1;
