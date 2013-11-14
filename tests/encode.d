@@ -1,9 +1,26 @@
 module tests.encode;
 
 import unit_threaded.check;
+import cerealed.cerealiser;
+import cerealed.decerealiser;
 import mqttd.message;
 import mqttd.factory;
 
+void testCerealiseFixedHeader() {
+    auto cereal = new Cerealiser();
+    cereal ~= MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
+    checkEqual(cereal.bytes, [0x3c, 0x5]);
+}
+
+void testDecerealiseMqttHeader() {
+     auto cereal = new Decerealiser([0x3c, 0x5]);
+     const header = cereal.value!MqttFixedHeader;
+     checkEqual(header.type, MqttType.PUBLISH);
+     checkEqual(header.dup, true);
+     checkEqual(header.qos, 2);
+     checkEqual(header.retain, false);
+     checkEqual(header.remaining, 5);
+}
 
 void testEncodeFixedHeader() {
     const msg = MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);

@@ -30,11 +30,11 @@ struct MqttFixedHeader {
 public:
     enum SIZE = 2;
 
-    MqttType type;
-    bool dup;
-    ubyte qos;
-    bool retain;
-    uint remaining;
+    @Bits!4 MqttType type;
+    @Bits!1 bool dup;
+    @Bits!2 ubyte qos;
+    @Bits!1 bool retain;
+    @Bits!8 uint remaining;
     Decerealiser cereal;
 
     this(MqttType type, bool dup, ubyte qos, bool retain, uint remaining = 0) {
@@ -64,8 +64,10 @@ public:
 
     auto encode() const {
         auto cereal = new Cerealiser;
-        ubyte byte1 = cast(ubyte)((type << 4) | ((cast(ubyte)dup) << 3) | (qos << 1) | (cast(ubyte)retain));
-        cereal ~= byte1;
+        cereal.writeBits(type, 4);
+        cereal.writeBits(dup, 1);
+        cereal.writeBits(qos, 2);
+        cereal.writeBits(retain, 1);
         setRemainingSize(cereal);
         return cereal.bytes;
     }
