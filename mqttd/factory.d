@@ -32,7 +32,7 @@ struct MqttFactory {
         case MqttType.CONNACK:
             return cereal.value!MqttConnack;
         case MqttType.PUBLISH:
-            return new MqttPublish(fixedHeader, cereal);
+            return cereal.value!MqttPublish(fixedHeader);
         case MqttType.SUBSCRIBE:
             if(fixedHeader.qos != 1) {
                 stderr.writeln("SUBSCRIBE message with qos ", fixedHeader.qos, ", should be 1");

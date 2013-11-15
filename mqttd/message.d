@@ -168,23 +168,7 @@ class MqttConnack: MqttMessage {
 
 class MqttPublish: MqttMessage {
 public:
-    this(MqttFixedHeader header, Decerealiser cereal) {
-        cereal.grain(header);
-        topic = cereal.value!string;
-        auto payloadLen = header.remaining - (topic.length + 2);
-        if(header.qos) {
-            if(header.remaining < 7) {
-                stderr.writeln("Error: PUBLISH message with QOS but no message ID");
-            } else {
-                msgId = cereal.value!ushort;
-                payloadLen -= 2;
-            }
-        }
-
-        for(int i = 0; i < payloadLen; ++i) {
-            payload ~= cereal.value!ubyte;
-        }
-
+    this(MqttFixedHeader header) {
         this.header = header;
     }
 
@@ -205,9 +189,16 @@ public:
     void accept(Cereal cereal) {
         cereal.grain(header);
         cereal.grain(topic);
+        auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
-            cereal.grain(msgId);
+            if(header.remaining < 7 && cereal.type == Cereal.Type.Read) {
+                stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+            } else {
+                cereal.grain(msgId);
+                payloadLen -= 2;
+            }
         }
+        if(cereal.type == Cereal.Type.Read) payload.length = payloadLen;
         foreach(ref b; payload) cereal.grain(b);
     }
 
