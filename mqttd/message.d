@@ -136,19 +136,16 @@ class MqttConnack: MqttMessage {
         NO_AUTH = 5,
     }
 
-    this() {}
+    this() {
+        header = MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2);
+    }
 
     this(Code code) {
         this.code = code;
+        this();
     }
 
-    void accept(Cereal cereal) {
-        auto header = MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2);
-        cereal.grain(header);
-        cereal.grain(reserved);
-        cereal.grain(code);
-    }
-
+    MqttFixedHeader header;
     ubyte reserved;
     Code code;
 }
