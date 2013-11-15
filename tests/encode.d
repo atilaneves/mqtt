@@ -22,6 +22,12 @@ void testDecerealiseMqttHeader() {
      checkEqual(header.remaining, 5);
 }
 
+private auto encode(in MqttFixedHeader header) {
+    auto cereal = new Cerealiser;
+    cereal ~= cast(MqttFixedHeader) header;
+    return cereal.bytes;
+}
+
 void testEncodeFixedHeader() {
     const msg = MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
     checkEqual(msg.encode(), [0x3c, 0x5]);

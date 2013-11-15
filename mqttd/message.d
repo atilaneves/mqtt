@@ -70,12 +70,6 @@ public:
         }
     }
 
-    auto encode() const {
-        auto cereal = new Cerealiser;
-        cereal ~= cast(MqttFixedHeader) this;
-        return cereal.bytes;
-    }
-
 private:
 
     uint getRemainingSize(Cereal cereal) {
@@ -181,9 +175,10 @@ class MqttConnack: MqttMessage {
 
     const(ubyte[]) encode() const {
         auto cereal = new Cerealiser;
+        cereal ~= cast(MqttFixedHeader) fixedHeader;
         cereal ~= cast(ubyte)0; //reserved byte
         cereal ~= cast(ubyte)code;
-        return fixedHeader.encode() ~ cereal.bytes;
+        return cereal.bytes;
     }
 
     Code code;
@@ -226,12 +221,13 @@ public:
 
     const(ubyte[]) encode() const {
         auto cereal = new Cerealiser;
+        cereal ~= cast(MqttFixedHeader) fixedHeader;
         cereal ~= topic;
         if(fixedHeader.qos) {
             cereal ~= msgId;
         }
 
-        return fixedHeader.encode() ~ cereal.bytes ~ cast(ubyte[])payload;
+        return cereal.bytes ~ cast(ubyte[])payload;
     }
 
     override void handle(MqttServer server, MqttConnection connection) const {
@@ -288,9 +284,10 @@ public:
 
     const(ubyte[]) encode() const {
         auto cereal = new Cerealiser();
+        cereal ~= cast(MqttFixedHeader) fixedHeader;
         cereal ~= msgId;
         foreach(q; qos) cereal ~= q;
-        return fixedHeader.encode() ~ cereal.bytes;
+        return cereal.bytes;
     }
 
     ushort msgId;
