@@ -37,7 +37,7 @@ struct MqttFactory {
             if(fixedHeader.qos != 1) {
                 stderr.writeln("SUBSCRIBE message with qos ", fixedHeader.qos, ", should be 1");
             }
-            return new MqttSubscribe(cereal);
+            return cereal.value!MqttSubscribe(fixedHeader);
         case MqttType.SUBACK:
             return new MqttSuback(cereal);
         case MqttType.PINGREQ:

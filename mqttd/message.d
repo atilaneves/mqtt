@@ -216,11 +216,22 @@ public:
 
 class MqttSubscribe: MqttMessage {
 public:
-    this(Decerealiser cereal) {
+    this(MqttFixedHeader header) {
+        this.header = header;
+    }
+
+    void accept(Cereal cereal) {
         cereal.grain(header);
-        msgId = cereal.value!ushort;
-        while(cereal.bytes.length) {
-            topics ~= Topic(cereal.value!string, cereal.value!ubyte);
+        cereal.grain(msgId);
+
+        if(cereal.type == Cereal.Type.Read) {
+            topics.length = 0;
+            while(cereal.bytesLeft) {
+                topics.length++;
+                cereal.grain(topics[$ - 1]);
+            }
+        } else {
+            foreach(ref t; topics) cereal.grain(t);
         }
     }
 
@@ -234,8 +245,8 @@ public:
     }
 
     MqttFixedHeader header;
-    Topic[] topics;
     ushort msgId;
+    Topic[] topics;
 }
 
 class MqttSuback: MqttMessage {
