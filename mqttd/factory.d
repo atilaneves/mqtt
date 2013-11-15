@@ -24,7 +24,7 @@ struct MqttFactory {
             return null;
         }
 
-        cereal.reset();
+        cereal.reset(); //so the messages created below can re-read the header
 
         switch(fixedHeader.type) {
         case MqttType.CONNECT:

@@ -33,15 +33,10 @@ public:
     @Bits!1 bool dup;
     @Bits!2 ubyte qos;
     @Bits!1 bool retain;
-    @Bits!8 uint remaining;
-    Decerealiser cereal;
+    @NoCereal uint remaining;
 
-    void accept(Cereal cereal) {
+    void postBlit(Cereal cereal) {
         //custom serialisation needed due to remaining size field
-        cereal.grainMember!"type"(this);
-        cereal.grainMember!"dup"(this);
-        cereal.grainMember!"qos"(this);
-        cereal.grainMember!"retain"(this);
         final switch(cereal.type) {
         case Cereal.Type.Write:
             setRemainingSize(cereal);
@@ -81,9 +76,8 @@ private:
             }
             digits ~= digit;
         } while(x > 0);
-        foreach(b; digits) {
-            cereal.grain(b);
-        }
+
+        foreach(b; digits) cereal.grain(b);
     }
 }
 
