@@ -252,23 +252,21 @@ public:
 class MqttSuback: MqttMessage {
 public:
 
+    this(MqttFixedHeader header) {
+        this.header = header;
+    }
+
     this(in ushort msgId, in ubyte[] qos) {
+        this.header = MqttFixedHeader(MqttType.SUBACK, false, 0, false, cast(uint)qos.length + 2);
         this.msgId = msgId;
         this.qos = qos.dup;
     }
 
-    this(Decerealiser cereal) {
+    void accept(Cereal cereal) {
         cereal.grain(header);
-        msgId = cereal.value!ushort();
-        qos = cereal.bytes.dup;
-    }
-
-    const(ubyte[]) encode() const {
-        auto cereal = new Cerealiser();
-        cereal ~= MqttFixedHeader(MqttType.SUBACK, false, 0, false, cast(uint)qos.length + 2);
-        cereal ~= msgId;
-        foreach(q; qos) cereal ~= q;
-        return cereal.bytes;
+        cereal.grain(msgId);
+        if(cereal.type == Cereal.Type.Read) qos.length = cereal.bytesLeft;
+        foreach(ref b; qos) cereal.grain(b);
     }
 
     MqttFixedHeader header;

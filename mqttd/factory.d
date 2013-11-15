@@ -39,7 +39,7 @@ struct MqttFactory {
             }
             return cereal.value!MqttSubscribe(fixedHeader);
         case MqttType.SUBACK:
-            return new MqttSuback(cereal);
+            return cereal.value!MqttSuback(fixedHeader);
         case MqttType.PINGREQ:
             return new MqttPingReq();
         case MqttType.PINGRESP:
