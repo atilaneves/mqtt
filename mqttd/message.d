@@ -36,14 +36,6 @@ public:
     @Bits!8 uint remaining;
     Decerealiser cereal;
 
-    this(MqttType type, bool dup, ubyte qos, bool retain, uint remaining = 0) {
-        this.type = type;
-        this.dup = dup;
-        this.qos = qos;
-        this.retain = retain;
-        this.remaining = remaining;
-    }
-
     void accept(Cereal cereal) {
         //custom serialisation needed due to remaining size field
         cereal.grainMember!"type"(this);
