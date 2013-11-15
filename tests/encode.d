@@ -167,9 +167,15 @@ void testDecodePublishWithBadSize() {
     checkNull(msg);
 }
 
+private auto encodeMsg(T)(T msg) {
+    auto cereal = new Cerealiser;
+    cereal ~= msg;
+    return cereal.bytes;
+}
+
 
 void testEncodePublish() {
-    checkEqual((new MqttPublish(false, 2, true, "foo", cast(ubyte[])"info", 12)).encode(),
+    checkEqual((new MqttPublish(false, 2, true, "foo", cast(ubyte[])"info", 12)).encodeMsg(),
                [0x35, 0x0b, //header
                 0x00, 0x03, 'f', 'o', 'o', //topic
                 0x00, 0x0c, //msgId
@@ -177,14 +183,14 @@ void testEncodePublish() {
                ]
               );
 
-    checkEqual((new MqttPublish(true, 0, false, "bars", cast(ubyte[])"boo")).encode(),
+    checkEqual((new MqttPublish(true, 0, false, "bars", cast(ubyte[])"boo")).encodeMsg(),
                [0x38, 0x09, //header
                 0x00, 0x04, 'b', 'a', 'r', 's',//topic
                 'b', 'o', 'o',
                ]
         );
 
-    checkEqual((new MqttPublish("topic", cast(ubyte[])"payload")).encode(),
+    checkEqual((new MqttPublish("topic", cast(ubyte[])"payload")).encodeMsg(),
                [0x30, 0x0e, //header
                 0x00, 0x05, 't', 'o', 'p', 'i', 'c',
                 'p', 'a', 'y', 'l', 'o', 'a', 'd']);

@@ -94,11 +94,12 @@ class MqttMessage {
 class MqttConnect: MqttMessage {
 public:
 
-    this(Decerealiser cereal) {
-        accept(cereal);
+    this(MqttFixedHeader header) {
+        this.header = header;
     }
 
     void accept(Cereal cereal) {
+        cereal.grainMember!"header"(this);
         cereal.grainMember!"protoName"(this);
         cereal.grainMember!"protoVersion"(this);
         cereal.grainMember!"hasUserName"(this);
@@ -118,6 +119,7 @@ public:
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
+    MqttFixedHeader header;
     string protoName;
     ubyte protoVersion;
     @Bits!1 bool hasUserName;
@@ -169,9 +171,10 @@ class MqttConnack: MqttMessage {
 class MqttPublish: MqttMessage {
 public:
     this(MqttFixedHeader header, Decerealiser cereal) {
+        cereal.grain(header);
         topic = cereal.value!string;
         auto payloadLen = header.remaining - (topic.length + 2);
-        if(header.qos > 0) {
+        if(header.qos) {
             if(header.remaining < 7) {
                 stderr.writeln("Error: PUBLISH message with QOS but no message ID");
             } else {
@@ -196,20 +199,18 @@ public:
         auto remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
         remaining += payload.length;
         this.topic = topic;
-        this.payload = payload;
+        this.payload = payload.dup;
         this.msgId = msgId;
         this.header = MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining);
     }
 
-    const(ubyte[]) encode() {
-        auto cereal = new Cerealiser;
-        cereal ~= header;
-        cereal ~= topic;
+    void accept(Cereal cereal) {
+        cereal.grain(header);
+        cereal.grain(topic);
         if(header.qos) {
-            cereal ~= msgId;
+            cereal.grain(msgId);
         }
-
-        return cereal.bytes ~ cast(ubyte[])payload;
+        foreach(ref b; payload) cereal.grain(b);
     }
 
     override void handle(MqttServer server, MqttConnection connection) const {
@@ -218,7 +219,7 @@ public:
 
     MqttFixedHeader header;
     string topic;
-    const(ubyte)[] payload;
+    ubyte[] payload;
     ushort msgId;
 }
 

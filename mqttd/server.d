@@ -66,7 +66,7 @@ class MqttConnection: MqttSubscriber {
     }
 
     override void newMessage(in string topic, in ubyte[] payload) {
-        write((new MqttPublish(topic, payload)).encode());
+        write((new MqttPublish(topic, payload)).encodee());
     }
 
 

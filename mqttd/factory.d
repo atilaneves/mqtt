@@ -26,11 +26,15 @@ struct MqttFactory {
 
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
-            return new MqttConnect(cereal);
+            auto msg = new MqttConnect(fixedHeader);
+            cereal.reset();
+            cereal.grain(msg);
+            return msg;
         case MqttType.CONNACK:
             cereal.reset();
             return new MqttConnack(cereal);
         case MqttType.PUBLISH:
+            cereal.reset();
             return new MqttPublish(fixedHeader, cereal);
         case MqttType.SUBSCRIBE:
             if(fixedHeader.qos != 1) {
