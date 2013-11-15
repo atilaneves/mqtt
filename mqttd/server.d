@@ -9,6 +9,13 @@ import std.algorithm;
 import std.array;
 
 
+private auto encodee(T)(T msg) {
+    auto cereal = new Cerealiser();
+    cereal ~= msg.fixedHeader;
+    cereal ~= msg;
+    return cereal.bytes;
+}
+
 class MqttServer {
     void newConnection(MqttConnection connection) {
         const connect = connection.connectMessage;

@@ -28,11 +28,11 @@ struct MqttFactory {
         case MqttType.SUBACK:
             return new MqttSuback(fixedHeader);
         case MqttType.PINGREQ:
-            return new MqttPingReq(fixedHeader);
+            return new MqttPingReq();
         case MqttType.PINGRESP:
             return new MqttPingResp();
         case MqttType.DISCONNECT:
-            return new MqttDisconnect(fixedHeader);
+            return new MqttDisconnect();
         default:
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
             return null;

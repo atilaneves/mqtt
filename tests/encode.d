@@ -97,7 +97,6 @@ void testConnectMsg() {
         ];
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 42);
 
     const connect = cast(MqttConnect)msg;
     checkNotNull(connect);
@@ -129,7 +128,6 @@ void testDecodePublishWithMsgId() {
 
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 11);
 
     const publish = cast(MqttPublish)msg;
     checkNotNull(publish);
@@ -146,7 +144,6 @@ void testDecodePublishWithNoMsgId() {
 
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 5);
 
     const publish = cast(MqttPublish)msg;
     checkNotNull(publish);
@@ -200,7 +197,6 @@ void testSubscribe() {
 
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
-    checkEqual(msg.fixedHeader.remaining, 19);
 
     const subscribe = cast(MqttSubscribe)msg;
     checkNotNull(subscribe);
