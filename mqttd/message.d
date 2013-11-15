@@ -180,10 +180,11 @@ public:
         const topicLen = cast(uint)topic.length + 2; //2 for length
         auto remaining = qos ? topicLen + 2 /*msgId*/ : topicLen;
         remaining += payload.length;
+
+        this.header = MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining);
         this.topic = topic;
         this.payload = payload.dup;
         this.msgId = msgId;
-        this.header = MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining);
     }
 
     void accept(Cereal cereal) {
