@@ -203,10 +203,7 @@ public:
         this.header = header;
     }
 
-    void accept(Cereal cereal) {
-        cereal.grain(header);
-        cereal.grain(msgId);
-
+    void postBlit(Cereal cereal) {
         if(cereal.type == Cereal.Type.Read) {
             topics.length = 0;
             while(cereal.bytesLeft) {
@@ -229,7 +226,7 @@ public:
 
     MqttFixedHeader header;
     ushort msgId;
-    Topic[] topics;
+    @NoCereal Topic[] topics;
 }
 
 class MqttSuback: MqttMessage {
