@@ -172,9 +172,7 @@ public:
         this.msgId = msgId;
     }
 
-    void accept(Cereal cereal) {
-        cereal.grain(header);
-        cereal.grain(topic);
+    void postBlit(Cereal cereal) {
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
             if(header.remaining < 7 && cereal.type == Cereal.Type.Read) {
@@ -194,8 +192,8 @@ public:
 
     MqttFixedHeader header;
     string topic;
-    ubyte[] payload;
-    ushort msgId;
+    @NoCereal ubyte[] payload;
+    @NoCereal ushort msgId;
 }
 
 
