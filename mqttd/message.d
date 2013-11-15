@@ -122,22 +122,21 @@ class MqttConnect: MqttMessage {
 public:
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = fixedHeader.cereal;
-        protoName = cereal.value!string;
-        protoVersion = cereal.value!ubyte;
-        ubyte flags = cereal.value!ubyte;
+        protoName = fixedHeader.cereal.value!string;
+        protoVersion = fixedHeader.cereal.value!ubyte;
+        ubyte flags = fixedHeader.cereal.value!ubyte;
         hasUserName = cast(bool)(flags & 0x80);
         hasPassword = cast(bool)(flags & 0x40);
         hasWillRetain = cast(bool)(flags & 0x20);
         willQos = (flags & 0x18) >> 3;
         hasWill = cast(bool)(flags & 0x04);
         hasClear = cast(bool)(flags & 0x02);
-        keepAlive = cereal.value!ushort;
-        clientId = cereal.value!string;
-        if(hasWill) willTopic = cereal.value!string;
-        if(hasWill) willMessage = cereal.value!string;
-        if(hasUserName) userName = cereal.value!string;
-        if(hasPassword) password = cereal.value!string;
+        keepAlive = fixedHeader.cereal.value!ushort;
+        clientId = fixedHeader.cereal.value!string;
+        if(hasWill) willTopic = fixedHeader.cereal.value!string;
+        if(hasWill) willMessage = fixedHeader.cereal.value!string;
+        if(hasUserName) userName = fixedHeader.cereal.value!string;
+        if(hasPassword) password = fixedHeader.cereal.value!string;
     }
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
@@ -176,9 +175,8 @@ class MqttConnack: MqttMessage {
 
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = header.cereal;
-        cereal.value!ubyte; //reserver value
-        this.code = cast(Code)cereal.value!ubyte;
+        header.cereal.value!ubyte; //reserver value
+        this.code = cast(Code)header.cereal.value!ubyte;
     }
 
     const(ubyte[]) encode() const {
@@ -196,20 +194,19 @@ class MqttPublish: MqttMessage {
 public:
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = fixedHeader.cereal;
-        topic = cereal.value!string;
+        topic = fixedHeader.cereal.value!string;
         auto payloadLen = fixedHeader.remaining - (topic.length + 2);
         if(fixedHeader.qos > 0) {
             if(fixedHeader.remaining < 7) {
                 stderr.writeln("Error: PUBLISH message with QOS but no message ID");
             } else {
-                msgId = cereal.value!ushort;
+                msgId = fixedHeader.cereal.value!ushort;
                 payloadLen -= 2;
             }
         }
 
         for(int i = 0; i < payloadLen; ++i) {
-            payload ~= cereal.value!ubyte;
+            payload ~= fixedHeader.cereal.value!ubyte;
         }
     }
 
@@ -255,10 +252,9 @@ public:
             stderr.writeln("SUBSCRIBE message with qos ", header.qos, ", should be 1");
         }
 
-        auto cereal = fixedHeader.cereal;
-        msgId = cereal.value!ushort;
-        while(cereal.bytes.length) {
-            topics ~= Topic(cereal.value!string, cereal.value!ubyte);
+        msgId = fixedHeader.cereal.value!ushort;
+        while(fixedHeader.cereal.bytes.length) {
+            topics ~= Topic(fixedHeader.cereal.value!string, fixedHeader.cereal.value!ubyte);
         }
     }
 
@@ -286,9 +282,8 @@ public:
 
     this(MqttFixedHeader header) {
         super(header);
-        auto cereal = header.cereal;
-        msgId = cereal.value!ushort();
-        qos = cereal.bytes.dup;
+        msgId = header.cereal.value!ushort();
+        qos = header.cereal.bytes.dup;
     }
 
     const(ubyte[]) encode() const {
