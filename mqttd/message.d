@@ -242,16 +242,14 @@ public:
         this.qos = qos.dup;
     }
 
-    void accept(Cereal cereal) {
-        cereal.grain(header);
-        cereal.grain(msgId);
+    void postBlit(Cereal cereal) {
         if(cereal.type == Cereal.Type.Read) qos.length = cereal.bytesLeft;
         foreach(ref b; qos) cereal.grain(b);
     }
 
     MqttFixedHeader header;
     ushort msgId;
-    ubyte[] qos;
+    @NoCereal ubyte[] qos;
 }
 
 
