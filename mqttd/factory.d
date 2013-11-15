@@ -32,7 +32,7 @@ struct MqttFactory {
             return msg;
         case MqttType.CONNACK:
             cereal.reset();
-            return new MqttConnack(cereal);
+            return cereal.value!MqttConnack;
         case MqttType.PUBLISH:
             cereal.reset();
             return new MqttPublish(fixedHeader, cereal);

@@ -148,12 +148,10 @@ class MqttConnack: MqttMessage {
         NO_AUTH = 5,
     }
 
+    this() {}
+
     this(Code code) {
         this.code = code;
-    }
-
-    this(Decerealiser cereal) {
-        accept(cereal);
     }
 
     void accept(Cereal cereal) {
