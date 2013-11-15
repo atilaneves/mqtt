@@ -24,15 +24,14 @@ struct MqttFactory {
             return null;
         }
 
+        cereal.reset();
+
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
-            cereal.reset();
             return cereal.value!MqttConnect(fixedHeader);
         case MqttType.CONNACK:
-            cereal.reset();
             return cereal.value!MqttConnack;
         case MqttType.PUBLISH:
-            cereal.reset();
             return new MqttPublish(fixedHeader, cereal);
         case MqttType.SUBSCRIBE:
             if(fixedHeader.qos != 1) {

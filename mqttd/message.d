@@ -225,6 +225,7 @@ public:
 class MqttSubscribe: MqttMessage {
 public:
     this(Decerealiser cereal) {
+        cereal.grain(header);
         msgId = cereal.value!ushort;
         while(cereal.bytes.length) {
             topics ~= Topic(cereal.value!string, cereal.value!ubyte);
@@ -240,6 +241,7 @@ public:
         ubyte qos;
     }
 
+    MqttFixedHeader header;
     Topic[] topics;
     ushort msgId;
 }
@@ -253,6 +255,7 @@ public:
     }
 
     this(Decerealiser cereal) {
+        cereal.grain(header);
         msgId = cereal.value!ushort();
         qos = cereal.bytes.dup;
     }
@@ -265,6 +268,7 @@ public:
         return cereal.bytes;
     }
 
+    MqttFixedHeader header;
     ushort msgId;
     ubyte[] qos;
 }
