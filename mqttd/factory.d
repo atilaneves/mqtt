@@ -9,8 +9,12 @@ import std.stdio;
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
         auto cereal = new Decerealiser(bytes);
-        //auto fixedHeader = cereal.value!MqttFixedHeader;
-        auto fixedHeader = MqttFixedHeader(bytes);
+        auto fixedHeader = cereal.value!MqttFixedHeader;
+        if(fixedHeader.remaining < cereal.bytes.length) {
+            stderr.writeln("Wrong MQTT remaining size ", cast(int)fixedHeader.remaining,
+                           ". Real remaining size: ", cereal.bytes.length);
+        }
+
         const mqttSize = fixedHeader.remaining + MqttFixedHeader.SIZE;
         if(mqttSize != bytes.length) {
             stderr.writeln("Malformed packet. Actual size: ", bytes.length,
@@ -19,17 +23,22 @@ struct MqttFactory {
             stderr.writefln("%(0x%x %)", bytes);
             return null;
         }
+
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
-            return new MqttConnect(fixedHeader);
+            return new MqttConnect(cereal);
         case MqttType.CONNACK:
-            return new MqttConnack(fixedHeader.cereal);
+            cereal.reset();
+            return new MqttConnack(cereal);
         case MqttType.PUBLISH:
-            return new MqttPublish(fixedHeader);
+            return new MqttPublish(fixedHeader, cereal);
         case MqttType.SUBSCRIBE:
-            return new MqttSubscribe(fixedHeader);
+            if(fixedHeader.qos != 1) {
+                stderr.writeln("SUBSCRIBE message with qos ", fixedHeader.qos, ", should be 1");
+            }
+            return new MqttSubscribe(cereal);
         case MqttType.SUBACK:
-            return new MqttSuback(fixedHeader);
+            return new MqttSuback(cereal);
         case MqttType.PINGREQ:
             return new MqttPingReq();
         case MqttType.PINGRESP:

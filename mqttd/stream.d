@@ -2,6 +2,7 @@ module mqttd.stream;
 
 import mqttd.message;
 import mqttd.factory;
+import cerealed;
 import std.stdio;
 import std.conv;
 
@@ -44,7 +45,8 @@ private:
 
     void updateRemaining() {
         if(!_remaining && _bytes.length >= MqttFixedHeader.SIZE) {
-            _remaining = MqttFixedHeader(slice()).remaining;
+            auto cereal = new Decerealiser(slice());
+            _remaining = cereal.value!MqttFixedHeader.remaining;
         }
     }
 

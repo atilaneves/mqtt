@@ -44,15 +44,6 @@ public:
         this.remaining = remaining;
     }
 
-    this(in ubyte[] bytes) {
-        cereal = new Decerealiser(bytes);
-        cereal.grain(this);
-        if(remaining < cereal.bytes.length) {
-            stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining,
-                           ". Real remaining size: ", cereal.bytes.length);
-        }
-    }
-
     void accept(Cereal cereal) {
         //custom serialisation needed due to remaining size field
         cereal.grainMember!"type"(this);
@@ -110,22 +101,22 @@ class MqttMessage {
 
 class MqttConnect: MqttMessage {
 public:
-    this(MqttFixedHeader header) {
-        protoName = header.cereal.value!string;
-        protoVersion = header.cereal.value!ubyte;
-        ubyte flags = header.cereal.value!ubyte;
+    this(Decerealiser cereal) {
+        protoName = cereal.value!string;
+        protoVersion = cereal.value!ubyte;
+        ubyte flags = cereal.value!ubyte;
         hasUserName = cast(bool)(flags & 0x80);
         hasPassword = cast(bool)(flags & 0x40);
         hasWillRetain = cast(bool)(flags & 0x20);
         willQos = (flags & 0x18) >> 3;
         hasWill = cast(bool)(flags & 0x04);
         hasClear = cast(bool)(flags & 0x02);
-        keepAlive = header.cereal.value!ushort;
-        clientId = header.cereal.value!string;
-        if(hasWill) willTopic = header.cereal.value!string;
-        if(hasWill) willMessage = header.cereal.value!string;
-        if(hasUserName) userName = header.cereal.value!string;
-        if(hasPassword) password = header.cereal.value!string;
+        keepAlive = cereal.value!ushort;
+        clientId = cereal.value!string;
+        if(hasWill) willTopic = cereal.value!string;
+        if(hasWill) willMessage = cereal.value!string;
+        if(hasUserName) userName = cereal.value!string;
+        if(hasPassword) password = cereal.value!string;
     }
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
@@ -162,7 +153,6 @@ class MqttConnack: MqttMessage {
     }
 
     this(Decerealiser cereal) {
-        cereal.reset();
         accept(cereal);
     }
 
@@ -180,20 +170,20 @@ class MqttConnack: MqttMessage {
 
 class MqttPublish: MqttMessage {
 public:
-    this(MqttFixedHeader header) {
-        topic = header.cereal.value!string;
+    this(MqttFixedHeader header, Decerealiser cereal) {
+        topic = cereal.value!string;
         auto payloadLen = header.remaining - (topic.length + 2);
         if(header.qos > 0) {
             if(header.remaining < 7) {
                 stderr.writeln("Error: PUBLISH message with QOS but no message ID");
             } else {
-                msgId = header.cereal.value!ushort;
+                msgId = cereal.value!ushort;
                 payloadLen -= 2;
             }
         }
 
         for(int i = 0; i < payloadLen; ++i) {
-            payload ~= header.cereal.value!ubyte;
+            payload ~= cereal.value!ubyte;
         }
 
         this.header = header;
@@ -237,14 +227,10 @@ public:
 
 class MqttSubscribe: MqttMessage {
 public:
-    this(MqttFixedHeader header) {
-        if(header.qos != 1) {
-            stderr.writeln("SUBSCRIBE message with qos ", header.qos, ", should be 1");
-        }
-
-        msgId = header.cereal.value!ushort;
-        while(header.cereal.bytes.length) {
-            topics ~= Topic(header.cereal.value!string, header.cereal.value!ubyte);
+    this(Decerealiser cereal) {
+        msgId = cereal.value!ushort;
+        while(cereal.bytes.length) {
+            topics ~= Topic(cereal.value!string, cereal.value!ubyte);
         }
     }
 
@@ -269,9 +255,9 @@ public:
         this.qos = qos.dup;
     }
 
-    this(MqttFixedHeader header) {
-        msgId = header.cereal.value!ushort();
-        qos = header.cereal.bytes.dup;
+    this(Decerealiser cereal) {
+        msgId = cereal.value!ushort();
+        qos = cereal.bytes.dup;
     }
 
     const(ubyte[]) encode() const {
