@@ -161,24 +161,17 @@ class MqttConnack: MqttMessage {
         this.code = code;
     }
 
-    this(MqttFixedHeader header) {
-        header.cereal.value!ubyte; //reserved value
-        this.code = header.cereal.value!Code;
+    this(Decerealiser cereal) {
+        cereal.reset();
+        accept(cereal);
     }
 
-    const(ubyte[]) encode() const {
-        auto cereal = new Cerealiser;
-        cereal ~= MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2);
-        cereal ~= cast(ubyte)0; //reserved byte
-        cereal ~= cast(ubyte)code;
-        return cereal.bytes;
+    void accept(Cereal cereal) {
+        auto header = MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2);
+        cereal.grain(header);
+        cereal.grain(reserved);
+        cereal.grain(code);
     }
-
-    // void accept(Cereal cereal) {
-    //     cereal.grain(cast(MqttFixedHeader) fixedHeader);
-    //     cereal.grain(reserved);
-    //     cereal.grain(code);
-    // }
 
     ubyte reserved;
     Code code;

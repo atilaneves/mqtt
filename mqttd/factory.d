@@ -2,11 +2,14 @@ module mqttd.factory;
 
 
 import mqttd.message;
+import cerealed;
 import std.stdio;
 
 
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
+        auto cereal = new Decerealiser(bytes);
+        //auto fixedHeader = cereal.value!MqttFixedHeader;
         auto fixedHeader = MqttFixedHeader(bytes);
         const mqttSize = fixedHeader.remaining + MqttFixedHeader.SIZE;
         if(mqttSize != bytes.length) {
@@ -20,7 +23,7 @@ struct MqttFactory {
         case MqttType.CONNECT:
             return new MqttConnect(fixedHeader);
         case MqttType.CONNACK:
-            return new MqttConnack(fixedHeader);
+            return new MqttConnack(fixedHeader.cereal);
         case MqttType.PUBLISH:
             return new MqttPublish(fixedHeader);
         case MqttType.SUBSCRIBE:

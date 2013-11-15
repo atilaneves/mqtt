@@ -28,13 +28,18 @@ private auto encode(in MqttFixedHeader header) {
     return cereal.bytes;
 }
 
+private auto headerFromBytes(in ubyte[] bytes) {
+    auto cereal = new Decerealiser(bytes);
+    return cereal.value!MqttFixedHeader;
+}
+
 void testEncodeFixedHeader() {
     const msg = MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
     checkEqual(msg.encode(), [0x3c, 0x5]);
 }
 
 void testDecodeFixedHeader() {
-    const msg = MqttFixedHeader([0x3c, 0x5, 0, 0, 0, 0, 0]);
+    const msg = headerFromBytes([0x3c, 0x5, 0, 0, 0, 0, 0]);
     checkEqual(msg.type, MqttType.PUBLISH);
     checkEqual(msg.dup, true);
     checkEqual(msg.qos, 2);
@@ -66,20 +71,20 @@ void testDecodeBigRemaining() {
     {
         ubyte[] bytes = [0x12, 0xc1, 0x02];
         bytes.length += 321;
-        const msg = MqttFixedHeader(bytes);
-        checkEqual(msg.remaining, 321);
+        const hdr = headerFromBytes(bytes);
+        checkEqual(hdr.remaining, 321);
     }
     {
         ubyte[] bytes = [0x12, 0x83, 0x02];
         bytes.length += 259;
-        const msg = MqttFixedHeader(bytes);
-        checkEqual(msg.remaining, 259);
+        const hdr = headerFromBytes(bytes);
+        checkEqual(hdr.remaining, 259);
     }
     {
         ubyte[] bytes = [0x12, 0x85, 0x80, 0x80, 0x01];
         bytes.length += 2_097_157;
-        const msg = MqttFixedHeader(bytes);
-        checkEqual(msg.remaining, 2_097_157);
+        const hdr = headerFromBytes(bytes);
+        checkEqual(hdr.remaining, 2_097_157);
     }
 }
 
@@ -113,9 +118,9 @@ void testConnectMsg() {
 }
 
 void testConnackMsg() {
-    const connack = new MqttConnack(MqttConnack.Code.SERVER_UNAVAILABLE);
-    checkEqual(connack.encode(),
-               [0x20, 0x2, 0x0, 0x3]);
+    auto cereal = new Cerealiser();
+    cereal ~= new MqttConnack(MqttConnack.Code.SERVER_UNAVAILABLE);
+    checkEqual(cereal.bytes, [0x20, 0x2, 0x0, 0x3]);
 }
 
 void testDecodePublishWithMsgId() {

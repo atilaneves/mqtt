@@ -4,6 +4,7 @@ module mqttd.server;
 import mqttd.message;
 import mqttd.factory;
 import mqttd.broker;
+import cerealed;
 import std.stdio;
 import std.algorithm;
 import std.array;
@@ -11,7 +12,6 @@ import std.array;
 
 private auto encodee(T)(T msg) {
     auto cereal = new Cerealiser();
-    cereal ~= msg.fixedHeader;
     cereal ~= msg;
     return cereal.bytes;
 }
@@ -25,7 +25,7 @@ class MqttServer {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        connection.write((new MqttConnack(code)).encode());
+        connection.write((new MqttConnack(code)).encodee());
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
