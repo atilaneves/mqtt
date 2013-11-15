@@ -24,11 +24,6 @@ void testDecerealiseMqttHeader() {
 
 void testEncodeFixedHeader() {
     const msg = MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
-    checkEqual(msg.type, MqttType.PUBLISH);
-    checkEqual(msg.dup, true);
-    checkEqual(msg.qos, 2);
-    checkEqual(msg.retain, false);
-    checkEqual(msg.remaining, 5);
     checkEqual(msg.encode(), [0x3c, 0x5]);
 }
 

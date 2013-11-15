@@ -2,8 +2,7 @@ module mqttd.message;
 
 
 import mqttd.server;
-import cerealed.cerealiser;
-import cerealed.decerealiser;
+import cerealed;
 import std.stdio;
 import std.algorithm;
 
@@ -47,37 +46,45 @@ public:
 
     this(in ubyte[] bytes) {
         cereal = new Decerealiser(bytes);
-        type   = cast(MqttType) cereal.readBits(4);
-        dup    = cast(bool)     cereal.readBits(1);
-        qos    = cast(ubyte)    cereal.readBits(2);
-        retain = cast(bool)     cereal.readBits(1);
-
-        remaining = getRemainingSize(cereal);
-
+        cereal.grain(this);
         if(remaining < cereal.bytes.length) {
             stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining,
                            ". Real remaining size: ", cereal.bytes.length);
         }
     }
 
+    void accept(Cereal cereal) {
+        //custom serialisation needed due to remaining size field
+        cereal.grainMember!"type"(this);
+        cereal.grainMember!"dup"(this);
+        cereal.grainMember!"qos"(this);
+        cereal.grainMember!"retain"(this);
+        final switch(cereal.type) {
+        case Cereal.Type.Write:
+            setRemainingSize(cereal);
+            break;
+
+        case Cereal.Type.Read:
+            remaining = getRemainingSize(cereal);
+            break;
+        }
+    }
+
     auto encode() const {
         auto cereal = new Cerealiser;
-        cereal.writeBits(type, 4);
-        cereal.writeBits(dup, 1);
-        cereal.writeBits(qos, 2);
-        cereal.writeBits(retain, 1);
-        setRemainingSize(cereal);
+        cereal ~= cast(MqttFixedHeader) this;
         return cereal.bytes;
     }
 
 private:
 
-    uint getRemainingSize(Decerealiser cereal) {
+    uint getRemainingSize(Cereal cereal) {
+        //algorithm straight from the MQTT spec
         int multiplier = 1;
         uint value = 0;
         ubyte digit;
         do {
-            digit = cereal.value!ubyte;
+            cereal.grain(digit);
             value += (digit & 127) * multiplier;
             multiplier *= 128;
         } while((digit & 128) != 0);
@@ -85,19 +92,20 @@ private:
         return value;
     }
 
-    void setRemainingSize(Cerealiser cereal) const {
+    void setRemainingSize(Cereal cereal) const {
+        //algorithm straight from the MQTT spec
         ubyte[] digits;
         uint x = remaining;
         do {
             ubyte digit = x % 128;
-            x/= 128;
+            x /= 128;
             if(x > 0) {
                 digit = digit | 0x80;
             }
             digits ~= digit;
         } while(x > 0);
         foreach(b; digits) {
-            cereal ~= b;
+            cereal.grain(b);
         }
     }
 }
