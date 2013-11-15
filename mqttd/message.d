@@ -98,19 +98,7 @@ public:
         this.header = header;
     }
 
-    void accept(Cereal cereal) {
-        cereal.grainMember!"header"(this);
-        cereal.grainMember!"protoName"(this);
-        cereal.grainMember!"protoVersion"(this);
-        cereal.grainMember!"hasUserName"(this);
-        cereal.grainMember!"hasPassword"(this);
-        cereal.grainMember!"hasWillRetain"(this);
-        cereal.grainMember!"willQos"(this);
-        cereal.grainMember!"hasWill"(this);
-        cereal.grainMember!"hasClear"(this);
-        cereal.grainMember!"reserved"(this);
-        cereal.grainMember!"keepAlive"(this);
-        cereal.grainMember!"clientId"(this);
+    void postBlit(Cereal cereal) {
         if(hasWill) cereal.grainMember!"willTopic"(this);
         if(hasWill) cereal.grainMember!"willMessage"(this);
         if(hasUserName) cereal.grainMember!"userName"(this);
@@ -131,10 +119,10 @@ public:
     @Bits!1 bool reserved;
     ushort keepAlive;
     string clientId;
-    string willTopic;
-    string willMessage;
-    string userName;
-    string password;
+    @NoCereal string willTopic;
+    @NoCereal string willMessage;
+    @NoCereal string userName;
+    @NoCereal string password;
 }
 
 class MqttConnack: MqttMessage {
