@@ -93,36 +93,42 @@ class MqttMessage {
 
 class MqttConnect: MqttMessage {
 public:
+
     this(Decerealiser cereal) {
-        protoName = cereal.value!string;
-        protoVersion = cereal.value!ubyte;
-        ubyte flags = cereal.value!ubyte;
-        hasUserName = cast(bool)(flags & 0x80);
-        hasPassword = cast(bool)(flags & 0x40);
-        hasWillRetain = cast(bool)(flags & 0x20);
-        willQos = (flags & 0x18) >> 3;
-        hasWill = cast(bool)(flags & 0x04);
-        hasClear = cast(bool)(flags & 0x02);
-        keepAlive = cereal.value!ushort;
-        clientId = cereal.value!string;
-        if(hasWill) willTopic = cereal.value!string;
-        if(hasWill) willMessage = cereal.value!string;
-        if(hasUserName) userName = cereal.value!string;
-        if(hasPassword) password = cereal.value!string;
+        accept(cereal);
+    }
+
+    void accept(Cereal cereal) {
+        cereal.grainMember!"protoName"(this);
+        cereal.grainMember!"protoVersion"(this);
+        cereal.grainMember!"hasUserName"(this);
+        cereal.grainMember!"hasPassword"(this);
+        cereal.grainMember!"hasWillRetain"(this);
+        cereal.grainMember!"willQos"(this);
+        cereal.grainMember!"hasWill"(this);
+        cereal.grainMember!"hasClear"(this);
+        cereal.grainMember!"reserved"(this);
+        cereal.grainMember!"keepAlive"(this);
+        cereal.grainMember!"clientId"(this);
+        if(hasWill) cereal.grainMember!"willTopic"(this);
+        if(hasWill) cereal.grainMember!"willMessage"(this);
+        if(hasUserName) cereal.grainMember!"userName"(this);
+        if(hasPassword) cereal.grainMember!"password"(this);
     }
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
     string protoName;
     ubyte protoVersion;
+    @Bits!1 bool hasUserName;
+    @Bits!1 bool hasPassword;
+    @Bits!1 bool hasWillRetain;
+    @Bits!2 ubyte willQos;
+    @Bits!1 bool hasWill;
+    @Bits!1 bool hasClear;
+    @Bits!1 bool reserved;
     ushort keepAlive;
     string clientId;
-    bool hasUserName;
-    bool hasPassword;
-    bool hasWillRetain;
-    ubyte willQos;
-    bool hasWill;
-    bool hasClear;
     string willTopic;
     string willMessage;
     string userName;
