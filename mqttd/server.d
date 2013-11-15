@@ -38,6 +38,10 @@ class MqttServer {
         _broker.subscribe(connection, topics);
     }
 
+    void unsubscribe(MqttConnection connection) {
+        _broker.unsubscribe(connection);
+    }
+
     void publish(in string topic, in string payload) {
         publish(topic, cast(ubyte[])payload);
     }

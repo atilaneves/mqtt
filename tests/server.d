@@ -123,6 +123,11 @@ void testSubscribe() {
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
     checkEqual(connection.payloads, ["interesting stuff"]);
+
+    server.unsubscribe(connection);
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
 }
 
 

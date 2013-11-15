@@ -249,6 +249,7 @@ public:
 
 class MqttDisconnect: MqttMessage {
     override void handle(MqttServer server, MqttConnection connection) const {
+        server.unsubscribe(connection);
         connection.disconnect();
     }
 }

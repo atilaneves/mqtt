@@ -8,7 +8,6 @@ class TestMqttSubscriber: MqttSubscriber {
     override void newMessage(in string topic, in ubyte[] payload) {
         messages ~= cast(string)payload;
     }
-
     string[] messages;
 }
 
@@ -30,6 +29,21 @@ void testSubscribe() {
     checkEqual(subscriber.messages, ["my foo is foo", "my foo is foo", "my bar is bar"]);
 }
 
+
+void testUnsubscribe() {
+    auto broker = MqttBroker();
+    auto subscriber = new TestMqttSubscriber();
+
+    broker.subscribe(subscriber, ["topics/foo"]);
+    broker.publish("topics/foo", "my foo is foo");
+    broker.publish("topics/bar", "my bar is bar");
+    checkEqual(subscriber.messages, ["my foo is foo"]);
+
+    broker.unsubscribe(subscriber);
+    broker.publish("topics/foo", "my foo is foo");
+    broker.publish("topics/bar", "my bar is bar");
+    checkEqual(subscriber.messages, ["my foo is foo"]); //shouldn't have changed
+}
 
 void testWildCards() {
    auto broker = MqttBroker();

@@ -44,6 +44,10 @@ struct MqttBroker {
         }
     }
 
+    void unsubscribe(MqttSubscriber subscriber) {
+        _subscriptions = std.algorithm.remove!(s => s.hasSubscriber(subscriber))(_subscriptions);
+    }
+
     static bool matches(in string topic, in string pattern) {
         return matches(array(splitter(topic, "/")), array(splitter(pattern, "/")));
     }
@@ -114,6 +118,10 @@ private struct Subscription {
 
     void newMessage(in string topic, in ubyte[] payload) {
         _subscriber.newMessage(topic, payload);
+    }
+
+    bool hasSubscriber(MqttSubscriber subscriber) const {
+        return _subscriber == subscriber;
     }
 
 private:
