@@ -26,10 +26,8 @@ struct MqttFactory {
 
         switch(fixedHeader.type) {
         case MqttType.CONNECT:
-            auto msg = new MqttConnect(fixedHeader);
             cereal.reset();
-            cereal.grain(msg);
-            return msg;
+            return cereal.value!MqttConnect(fixedHeader);
         case MqttType.CONNACK:
             cereal.reset();
             return cereal.value!MqttConnack;
