@@ -197,18 +197,6 @@ public:
         this.header = header;
     }
 
-    void postBlit(Cereal cereal) {
-        if(cereal.type == Cereal.Type.Read) {
-            topics.length = 0;
-            while(cereal.bytesLeft) {
-                topics.length++;
-                cereal.grain(topics[$ - 1]);
-            }
-        } else {
-            foreach(ref t; topics) cereal.grain(t);
-        }
-    }
-
     override void handle(MqttServer server, MqttConnection connection) const {
         server.subscribe(connection, msgId, topics);
     }
@@ -220,7 +208,7 @@ public:
 
     MqttFixedHeader header;
     ushort msgId;
-    @NoCereal Topic[] topics;
+    @RawArray Topic[] topics;
 }
 
 class MqttSuback: MqttMessage {
@@ -236,14 +224,9 @@ public:
         this.qos = qos.dup;
     }
 
-    void postBlit(Cereal cereal) {
-        if(cereal.type == Cereal.Type.Read) qos.length = cereal.bytesLeft;
-        foreach(ref b; qos) cereal.grain(b);
-    }
-
     MqttFixedHeader header;
     ushort msgId;
-    @NoCereal ubyte[] qos;
+    @RawArray ubyte[] qos;
 }
 
 class MqttUnsubscribe: MqttMessage {
@@ -251,21 +234,9 @@ class MqttUnsubscribe: MqttMessage {
         this.header = header;
     }
 
-    void postBlit(Cereal cereal) {
-        if(cereal.type == Cereal.Type.Read) {
-            topics.length = 0;
-            while(cereal.bytesLeft) {
-                topics.length++;
-                cereal.grain(topics[$ - 1]);
-            }
-        } else {
-            foreach(ref t; topics) cereal.grain(t);
-        }
-    }
-
     MqttFixedHeader header;
     ushort msgId;
-    @NoCereal string[] topics;
+    @RawArray string[] topics;
 }
 
 class MqttUnsuback: MqttMessage {
