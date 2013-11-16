@@ -246,6 +246,15 @@ public:
     @NoCereal ubyte[] qos;
 }
 
+class MqttUnsuback: MqttMessage {
+    this(in ushort msgId) {
+        this.header = MqttFixedHeader(MqttType.UNSUBACK, false, 0, false, 2);
+        this.msgId = msgId;
+    }
+
+    MqttFixedHeader header;
+    ushort msgId;
+}
 
 class MqttDisconnect: MqttMessage {
     override void handle(MqttServer server, MqttConnection connection) const {

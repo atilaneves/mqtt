@@ -240,3 +240,10 @@ void testPingResp() {
     checkEqual((new MqttPingResp()).encode(),
                [0xd0, 0x00]);
 }
+
+void testUnsuback() {
+    checkEqual((new MqttUnsuback(13)).encodeMsg(),
+               [0xb0, 0x02, //fixed header
+                0x00, 0x0d ]); //msgId
+
+}
