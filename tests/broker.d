@@ -30,7 +30,7 @@ void testSubscribe() {
 }
 
 
-void testUnsubscribe() {
+void testUnsubscribeAll() {
     auto broker = MqttBroker();
     auto subscriber = new TestMqttSubscriber();
 
@@ -44,6 +44,24 @@ void testUnsubscribe() {
     broker.publish("topics/bar", "my bar is bar");
     checkEqual(subscriber.messages, ["my foo is foo"]); //shouldn't have changed
 }
+
+void testUnsubscribe() {
+    auto broker = MqttBroker();
+    auto subscriber = new TestMqttSubscriber();
+
+    broker.subscribe(subscriber, ["topics/foo", "topics/bar"]);
+    broker.publish("topics/foo", "my foo is foo");
+    broker.publish("topics/bar", "my bar is bar");
+    broker.publish("topics/baz", "my baz is baz");
+    checkEqual(subscriber.messages, ["my foo is foo", "my bar is bar"]);
+
+    broker.unsubscribe(subscriber, ["topics/foo"]);
+    broker.publish("topics/foo", "my foo is foo");
+    broker.publish("topics/bar", "my bar is bar");
+    broker.publish("topics/baz", "my baz is baz");
+    checkEqual(subscriber.messages, ["my foo is foo", "my bar is bar", "my bar is bar"]);
+}
+
 
 void testWildCards() {
    auto broker = MqttBroker();
