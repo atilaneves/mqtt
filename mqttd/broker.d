@@ -29,8 +29,8 @@ struct MqttBroker {
 
     void publish(in string topic, in ubyte[] payload) {
         const topParts = array(splitter(topic, "/"));
-        foreach(ref s; filter!(a => a.matches(topParts))(_subscriptions)) {
-            if(s.matches(topParts)) s.newMessage(topic, payload);
+        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
+            s.newMessage(topic, payload);
         }
     }
 
@@ -123,6 +123,10 @@ private struct Subscription {
         _qos = topic.qos;
     }
 
+    bool matches(in string[] topic) const {
+        return _matcher.matches(topic);
+    }
+
     void newMessage(in string topic, in ubyte[] payload) {
         _subscriber.newMessage(topic, payload);
     }
@@ -139,5 +143,4 @@ private:
     const PatternMatcher _matcher;
     MqttSubscriber _subscriber;
     ubyte _qos;
-    bool matches(in string[] topic) const { return _matcher.matches(topic); }
 }
