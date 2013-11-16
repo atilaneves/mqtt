@@ -234,6 +234,10 @@ class MqttUnsubscribe: MqttMessage {
         this.header = header;
     }
 
+    override void handle(MqttServer server, MqttConnection connection) const {
+        server.unsubscribe(connection, msgId, topics);
+    }
+
     MqttFixedHeader header;
     ushort msgId;
     @RawArray string[] topics;
@@ -243,6 +247,10 @@ class MqttUnsuback: MqttMessage {
     this(in ushort msgId) {
         this.header = MqttFixedHeader(MqttType.UNSUBACK, false, 0, false, 2);
         this.msgId = msgId;
+    }
+
+    this(MqttFixedHeader header) {
+        this.header = header;
     }
 
     MqttFixedHeader header;

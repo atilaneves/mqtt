@@ -159,7 +159,9 @@ void testSubscribeWithMessage() {
               0x02, //qos
         ];
 
-    MqttFactory.create(bytes).handle(server, connection); //subscribe
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    msg.handle(server, connection); //subscribe
     const suback = cast(MqttSuback)connection.lastMsg;
     checkNotNull(suback);
     checkEqual(suback.msgId, 33);
@@ -189,6 +191,92 @@ void testSubscribeWithMessage() {
 
     checkEqual(connection.payloads, ["borg", "foo"]);
 }
+
+void testUnsubscribe() {
+    auto server = new MqttServer();
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x00, 0x0a, //keepalive of 10
+                      0x00, 0x03, 'c', 'i', 'd', //client ID
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x02, 'p', 'w', //password
+        ];
+
+    auto connection = new TestMqttConnection(bytes);
+    server.newConnection(connection);
+
+    server.subscribe(connection, 42, ["foo/bar/+"]);
+    const suback = cast(MqttSuback)connection.lastMsg;
+    checkNotNull(suback);
+
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff"]);
+
+    server.unsubscribe(connection, 2, ["boo"]); //doesn't exist, so no effect
+    const unsuback1 = cast(MqttUnsuback)connection.lastMsg;
+    checkNotNull(unsuback1);
+    checkEqual(unsuback1.msgId, 2);
+
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff", "interesting stuff"]);
+
+    server.unsubscribe(connection, 3, ["foo/bar/+"]);
+    const unsuback2 = cast(MqttUnsuback)connection.lastMsg;
+    checkNotNull(unsuback2);
+    checkEqual(unsuback2.msgId, 3);
+
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff", "interesting stuff"]); //shouldn't have changed
+}
+
+
+void testUnsubscribeHandle() {
+    auto server = new MqttServer();
+    ubyte[] bytes = [ 0x10, 0x2a, //fixed header
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x00, 0x0a, //keepalive of 10
+                      0x00, 0x03, 'c', 'i', 'd', //client ID
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x02, 'p', 'w', //password
+        ];
+
+    auto connection = new TestMqttConnection(bytes);
+    server.newConnection(connection);
+    server.subscribe(connection, 42, ["foo/bar/+"]);
+
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff"]);
+
+    bytes = [ 0xa2, 0x0d, //fixed header
+              0x00, 0x21, //message ID
+              0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
+        ];
+
+    MqttMessage msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+    msg.handle(server, connection); //unsubscribe
+    const unsuback = cast(MqttUnsuback)connection.lastMsg;
+    checkNotNull(unsuback);
+    checkEqual(unsuback.msgId, 33);
+
+    server.publish("foo/bar/baz", "interesting stuff");
+    server.publish("foo/boogagoo", "oh noes!!!");
+    checkEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
+}
+
+
 
 void testPing() {
     auto server = new MqttServer();
