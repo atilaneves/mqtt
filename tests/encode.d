@@ -98,7 +98,7 @@ void testConnectMsg() {
                       0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
                       0x00, 0x04, 'w', 'm', 's', 'g', //will msg
                       0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x01, 'p', 'w', //password
+                      0x00, 0x02, 'p', 'w', //password
         ];
     const msg = MqttFactory.create(bytes);
     checkNotNull(msg);
@@ -108,13 +108,18 @@ void testConnectMsg() {
 
     checkEqual(connect.protoName, "MQIsdp");
     checkEqual(connect.protoVersion, 3);
-    checkEqual(connect.keepAlive, 10);
     checkTrue(connect.hasUserName);
     checkTrue(connect.hasPassword);
     checkFalse(connect.hasWillRetain);
     checkEqual(connect.willQos, 1);
     checkTrue(connect.hasWill);
     checkFalse(connect.hasClear);
+    checkEqual(connect.keepAlive, 10);
+    checkEqual(connect.clientId, "cid");
+    checkEqual(connect.willTopic, "will");
+    checkEqual(connect.willMessage, "wmsg");
+    checkEqual(connect.userName, "gliftel");
+    checkEqual(connect.password, "pw");
 }
 
 void testConnackMsg() {

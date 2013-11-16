@@ -93,10 +93,10 @@ public:
     }
 
     void postBlit(Cereal cereal) {
-        if(hasWill) cereal.grainMember!"willTopic"(this);
-        if(hasWill) cereal.grainMember!"willMessage"(this);
-        if(hasUserName) cereal.grainMember!"userName"(this);
-        if(hasPassword) cereal.grainMember!"password"(this);
+        if(hasWill) cereal.grain(willTopic);
+        if(hasWill) cereal.grain(willMessage);
+        if(hasUserName) cereal.grain(userName);
+        if(hasPassword) cereal.grain(password);
     }
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
