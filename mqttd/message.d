@@ -246,6 +246,28 @@ public:
     @NoCereal ubyte[] qos;
 }
 
+class MqttUnsubscribe: MqttMessage {
+    this(MqttFixedHeader header) {
+        this.header = header;
+    }
+
+    void postBlit(Cereal cereal) {
+        if(cereal.type == Cereal.Type.Read) {
+            topics.length = 0;
+            while(cereal.bytesLeft) {
+                topics.length++;
+                cereal.grain(topics[$ - 1]);
+            }
+        } else {
+            foreach(ref t; topics) cereal.grain(t);
+        }
+    }
+
+    MqttFixedHeader header;
+    ushort msgId;
+    @NoCereal string[] topics;
+}
+
 class MqttUnsuback: MqttMessage {
     this(in ushort msgId) {
         this.header = MqttFixedHeader(MqttType.UNSUBACK, false, 0, false, 2);

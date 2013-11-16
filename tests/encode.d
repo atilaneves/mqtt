@@ -241,9 +241,27 @@ void testPingResp() {
                [0xd0, 0x00]);
 }
 
+
+void testUnsubscribe() {
+    ubyte[] bytes = [ 0xa2, 0x11, //fixed header
+                      0x00, 0x2a, //message ID
+                      0x00, 0x05, 'f', 'i', 'r', 's', 't',
+                      0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',
+        ];
+
+    const msg = MqttFactory.create(bytes);
+    checkNotNull(msg);
+
+    const unsubscribe = cast(MqttUnsubscribe)msg;
+    checkNotNull(unsubscribe);
+
+    checkEqual(unsubscribe.msgId, 42);
+    checkEqual(unsubscribe.topics, ["first", "second"]);
+}
+
+
 void testUnsuback() {
     checkEqual((new MqttUnsuback(13)).encodeMsg(),
                [0xb0, 0x02, //fixed header
                 0x00, 0x0d ]); //msgId
-
 }
