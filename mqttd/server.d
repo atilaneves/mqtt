@@ -4,7 +4,7 @@ module mqttd.server;
 import mqttd.message;
 import mqttd.factory;
 import mqttd.broker;
-import cerealed;
+import cerealed.cerealiser;
 import std.stdio;
 import std.algorithm;
 import std.array;

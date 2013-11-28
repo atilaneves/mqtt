@@ -2,7 +2,7 @@ module mqttd.message;
 
 
 import mqttd.server;
-import cerealed;
+import cerealed.cereal;
 import std.stdio;
 import std.algorithm;
 
