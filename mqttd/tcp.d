@@ -5,7 +5,6 @@ import mqttd.server;
 import mqttd.factory;
 import mqttd.message;
 import mqttd.stream;
-import std.stdio;
 import vibe.d;
 
 class MqttTcpConnection: MqttConnection {
@@ -37,9 +36,15 @@ class MqttTcpConnection: MqttConnection {
             do {
                 const msg = stream.createMessage();
                 if(msg) msg.handle(_server, this);
-            } while(stream.hasMessages());
+            } while(stream.hasMessages() && connected);
 
-        } while(_tcpConnection.connected && _connected);
+        } while(connected);
+
+        _connected = false;
+    }
+
+    @property bool connected() const {
+        return _tcpConnection.connected && _connected;
     }
 
     override void disconnect() {
