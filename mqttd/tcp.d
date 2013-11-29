@@ -28,11 +28,13 @@ class MqttTcpConnection: MqttConnection {
             while(connected) {
                 if(!_tcpConnection.waitForData(60.seconds) ) {
                     stderr.writeln("Persistent connection timeout!");
+                    _connected = false;
                     break;
                 }
 
                 read();
             }
+            _connected = false;
         });
 
         rtask.join();
