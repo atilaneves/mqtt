@@ -24,6 +24,12 @@ class MqttTcpConnection: MqttConnection {
     }
 
     void run() {
+        auto wtask = runTask({
+            while(connected) {
+                auto msg = cast(MqttMessage)receiveOnly!(shared MqttMessage);
+                msg.handle(_server, this);
+            }
+        });
         auto rtask = runTask({
             while(connected) {
                 if(!_tcpConnection.waitForData(60.seconds) ) {
@@ -32,7 +38,7 @@ class MqttTcpConnection: MqttConnection {
                     break;
                 }
 
-                read();
+                read(wtask);
             }
             _connected = false;
         });
@@ -59,14 +65,13 @@ private:
         auto bytes = new ubyte[_tcpConnection.leastSize];
     }
 
-    auto read() {
+    auto read(Tid writerTid) {
         while(!_tcpConnection.empty) {
             auto bytes = new ubyte[_tcpConnection.leastSize];
             _tcpConnection.read(bytes);
             _stream ~= bytes;
             while(_stream.hasMessages() && connected) {
-                const msg = _stream.createMessage();
-                if(msg) msg.handle(_server, this);
+                writerTid.send(cast(shared)_stream.createMessage());
             }
         }
     }
