@@ -101,6 +101,10 @@ public:
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
+    override void handle(MqttServer server, MqttConnection connection) const {
+        server.newConnection(connection, this);
+    }
+
     MqttFixedHeader header;
     string protoName;
     ubyte protoVersion;

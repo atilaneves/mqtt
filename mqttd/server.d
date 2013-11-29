@@ -17,9 +17,11 @@ private auto encode(T)(T msg) {
 }
 
 class MqttServer {
-    void newConnection(MqttConnection connection) {
-        const connect = connection.connectMessage;
-        if(!connect) return;
+    void newConnection(MqttConnection connection, const MqttConnect connect) {
+        if(!connect) {
+            stderr.writeln("Invalid connect message");
+            return;
+        }
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
             code = MqttConnack.Code.BAD_ID;
@@ -65,21 +67,12 @@ private:
     MqttBroker _broker;
 }
 
-class MqttConnection: MqttSubscriber {
-    this(in ubyte[] bytes) {
-        connectMessage = cast(MqttConnect)MqttFactory.create(bytes);
-        if(connectMessage is null) {
-            stderr.writeln("Invalid connect message");
-        }
-    }
 
+class MqttConnection: MqttSubscriber {
     override void newMessage(in string topic, in ubyte[] payload) {
         write((new MqttPublish(topic, payload)).encode());
     }
 
-
     abstract void write(in ubyte[] bytes);
     abstract void disconnect();
-
-    MqttConnect connectMessage;
 }

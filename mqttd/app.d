@@ -9,19 +9,18 @@ private MqttServer gServer;
 
 shared static this() {
     //setLogLevel(LogLevel.debugV);
+    setLogLevel(LogLevel.none);
     gServer = new MqttServer();
-    logDebug("About to listen");
     listenTCP_s(1883, &accept);
 }
 
 
 void accept(TCPConnection tcpConnection) {
-    logDebug("New TCP connection");
     if (!tcpConnection.waitForData(10.seconds())) {
-        logDebug("Client didn't send the initial request in a timely manner. Closing connection.");
+        stderr.writeln("Client didn't send the initial request in a timely manner. Closing connection.");
     }
 
     auto mqttConnection = new MqttTcpConnection(gServer, tcpConnection);
-    gServer.newConnection(mqttConnection);
     mqttConnection.run();
+    if(tcpConnection.connected) tcpConnection.close();
 }
