@@ -12,7 +12,7 @@ interface MqttSubscriber {
 
 private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
     if(str1.length != str2.length) return false;
-    for(long i = str1.length - 1; i >= 0; --i)
+    for(auto i = cast(int)str1.length - 1; i >= 0; --i)
         if(str1[i] != str2[i]) return false;
     return true;
 }
@@ -87,7 +87,7 @@ private class PlusMatcher: PatternMatcher {
 
     override bool matches(in string[] topic) const {
         if(_pattern.length != topic.length) return false;
-        for(long i = topic.length - 1; i >= 0; --i) {
+        for(auto i = cast(int)topic.length - 1; i >= 0; --i) {
             if(!_pattern[i].equalOrPlus(topic[i])) return false;
         }
         return true;
@@ -100,7 +100,7 @@ private class HashMatcher: PatternMatcher {
     override bool matches(in string[] topic) const {
         //+1 here allows "finance/#" to match "finance"
         if(_pattern.length > topic.length + 1) return false;
-        for(long i = _pattern.length - 2; i >=0 ; --i) { //starts with same thing
+        for(auto i = cast(int)_pattern.length - 2; i >=0 ; --i) { //starts with same thing
             if(!_pattern[i].equalOrPlus(topic[i])) return false;
         }
         return true;

@@ -16,7 +16,7 @@ struct MqttStream {
         return _bytes.length >= _remaining + MqttFixedHeader.SIZE;
     }
 
-    bool empty() {
+    bool empty() const {
         return _bytes.length == 0;
     }
 
