@@ -18,7 +18,7 @@ class MqttTcpConnection: MqttConnection {
     }
 
     override void write(in ubyte[] bytes) {
-        if(_connected) {
+        if(connected) {
             runTask({
                 _tcpConnection.write(bytes);
             });
@@ -39,7 +39,7 @@ class MqttTcpConnection: MqttConnection {
     }
 
     @property bool connected() const {
-        return _connected && _tcpConnection.connected;
+        return _tcpConnection.connected && _connected;
     }
 
     override void disconnect() {
@@ -58,11 +58,11 @@ private:
     }
 
     auto read() {
-        while(!_tcpConnection.empty) {
+        while(connected && !_tcpConnection.empty) {
             auto bytes = new ubyte[_tcpConnection.leastSize];
             _tcpConnection.read(bytes);
             _stream ~= bytes;
-            while(_stream.hasMessages() && connected) {
+            while(_stream.hasMessages()) {
                 _stream.createMessage().handle(_server, this);
             }
         }
