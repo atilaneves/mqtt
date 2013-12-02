@@ -19,32 +19,23 @@ class MqttTcpConnection: MqttConnection {
 
     override void write(in ubyte[] bytes) {
         if(_connected) {
-            _tcpConnection.write(bytes);
+            runTask({
+                _tcpConnection.write(bytes);
+            });
         }
     }
 
     void run() {
-        auto wtask = runTask({
-            while(connected) {
-                auto msg = cast(MqttMessage)receiveOnly!(shared MqttMessage);
-                msg.handle(_server, this);
+        while(connected) {
+            if(!_tcpConnection.waitForData(60.seconds) ) {
+                stderr.writeln("Persistent connection timeout!");
+                _connected = false;
+                break;
             }
-        });
-        auto rtask = runTask({
-            while(connected) {
-                if(!_tcpConnection.waitForData(60.seconds) ) {
-                    stderr.writeln("Persistent connection timeout!");
-                    _connected = false;
-                    break;
-                }
 
-                read(wtask);
-            }
-            _connected = false;
-        });
-
-        rtask.join();
-        wtask.join();
+            read();
+        }
+        _connected = false;
     }
 
     @property bool connected() const {
@@ -66,13 +57,13 @@ private:
         auto bytes = new ubyte[_tcpConnection.leastSize];
     }
 
-    auto read(Tid writerTid) {
+    auto read() {
         while(!_tcpConnection.empty) {
             auto bytes = new ubyte[_tcpConnection.leastSize];
             _tcpConnection.read(bytes);
             _stream ~= bytes;
             while(_stream.hasMessages() && connected) {
-                writerTid.send(cast(shared)_stream.createMessage());
+                _stream.createMessage().handle(_server, this);
             }
         }
     }
