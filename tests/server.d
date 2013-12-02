@@ -9,8 +9,12 @@ import std.stdio;
 
 class TestMqttConnection: MqttConnection {
     this(in ubyte[] bytes) {
-        connected = true;
         connect = cast(MqttConnect)MqttFactory.create(bytes);
+    }
+
+    this(MqttConnect connect) {
+        connected = true;
+        this.connect = connect;
     }
 
     override void write(in ubyte[] bytes) {
@@ -277,6 +281,40 @@ void testUnsubscribeHandle() {
     checkEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
 }
 
+void testSubscribeWildCard() {
+    import std.conv;
+    auto server = new MqttServer;
+    TestMqttConnection[] reqs;
+    TestMqttConnection[] reps;
+    immutable numConnections = 10;
+    foreach(i; 0..numConnections) {
+        reqs ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+        server.newConnection(reqs[$ - 1], reqs[$ - 1].connect);
+        server.subscribe(reqs[$ - 1], cast(ushort)(i * 2), [text("pingtest/", i, "/request")]);
+
+        reps ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+        server.newConnection(reps[$ - 1], reps[$ - 1].connect);
+        server.subscribe(reps[$ - 1], cast(ushort)(i * 2 + 1), [text("pingtest/", i, "/reply")]);
+    }
+    auto wildConn = new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+    server.newConnection(wildConn, wildConn.connect);
+    server.subscribe(wildConn, 133, ["pingtest/0/#"]);
+
+    immutable numMessages = 2;
+    foreach(i; 0..numConnections) {
+        foreach(j; 0..numMessages) {
+            server.publish(text("pingtest/", i, "/request"), "ping");
+            server.publish(text("pingtest/", i, "/reply"), "pong");
+        }
+    }
+
+    foreach(i; 0..numConnections) {
+        checkEqual(reqs[i].payloads.length, numMessages);
+        checkEqual(reps[i].payloads.length, numMessages);
+    }
+
+    checkEqual(wildConn.payloads.length, numMessages * 2);
+}
 
 
 void testPing() {
