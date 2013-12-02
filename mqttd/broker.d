@@ -57,7 +57,23 @@ struct MqttBroker {
     }
 
     static bool matches(in string[] topParts, in string pattern) {
-        return PatternMatcherFactory.create(pattern).matches(topParts);
+        return matches(topParts, array(splitter(pattern, "/")));
+    }
+
+    static bool matches(in string[] topParts, in string[] patParts) {
+        immutable hasHash = patParts[$ - 1] == "#";
+        if(hasHash) {
+            //+1 here allows "finance/#" to match "finance"
+            if(patParts.length > topParts.length + 1) return false;
+        } else {
+            if(patParts.length != topParts.length) return false;
+        }
+
+        immutable end = cast(int)(hasHash ? patParts.length - 2 : patParts.length - 1);
+        for(int i = end; i >=0 ; --i) { //starts with same thing
+            if(!patParts[i].equalOrPlus(topParts[i])) return false;
+        }
+        return true;
     }
 
 private:
@@ -82,49 +98,16 @@ private class PatternMatcher {
     const string[] _pattern;
 }
 
-private class PlusMatcher: PatternMatcher {
-    this(in string topic, in string[] pattern) { super(topic, pattern); }
-
-    override bool matches(in string[] topic) const {
-        if(_pattern.length != topic.length) return false;
-        for(auto i = cast(int)topic.length - 1; i >= 0; --i) {
-            if(!_pattern[i].equalOrPlus(topic[i])) return false;
-        }
-        return true;
-    }
-};
-
-private class HashMatcher: PatternMatcher {
-    this(in string topic, in string[] pattern) { super(topic, pattern); }
-
-    override bool matches(in string[] topic) const {
-        //+1 here allows "finance/#" to match "finance"
-        if(_pattern.length > topic.length + 1) return false;
-        for(auto i = cast(int)_pattern.length - 2; i >=0 ; --i) { //starts with same thing
-            if(!_pattern[i].equalOrPlus(topic[i])) return false;
-        }
-        return true;
-    }
-}
-
-private class PatternMatcherFactory {
-    static PatternMatcher create(in string topic) {
-        const pattern = array(splitter(topic, "/"));
-        const index = countUntil(pattern, "#");
-        if(index == -1) return new PlusMatcher(topic, pattern);
-        return new HashMatcher(topic, pattern);
-    }
-}
-
 private struct Subscription {
     this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic) {
         _subscriber = subscriber;
-        _matcher = PatternMatcherFactory.create(topic.topic);
+        _topic = topic.topic;
+        _pattern = array(splitter(topic.topic, "/"));
         _qos = topic.qos;
     }
 
     bool matches(in string[] topic) const {
-        return _matcher.matches(topic);
+        return MqttBroker.matches(topic, _pattern);
     }
 
     void newMessage(in string topic, in ubyte[] payload) {
@@ -136,10 +119,16 @@ private struct Subscription {
     }
 
     bool isSubscription(MqttSubscriber subscriber, in string[] topics) const {
-        return isSubscriber(subscriber) && _matcher.isTopic(topics);
+        return isSubscriber(subscriber) && isTopic(topics);
+    }
+
+    bool isTopic(in string[] topics) const {
+        return !find(topics, _topic).empty;
     }
 
 private:
+    const string _topic;
+    const string[] _pattern;
     const PatternMatcher _matcher;
     MqttSubscriber _subscriber;
     ubyte _qos;
