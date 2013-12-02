@@ -1,6 +1,7 @@
 module tests.broker;
 
 import unit_threaded.check;
+import unit_threaded.io;
 import mqttd.broker;
 
 
@@ -40,6 +41,7 @@ void testUnsubscribeAll() {
     checkEqual(subscriber.messages, ["my foo is foo"]);
 
     broker.unsubscribe(subscriber);
+
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
     checkEqual(subscriber.messages, ["my foo is foo"]); //shouldn't have changed
