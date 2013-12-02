@@ -44,6 +44,7 @@ class MqttTcpConnection: MqttConnection {
         });
 
         rtask.join();
+        wtask.join();
     }
 
     @property bool connected() const {

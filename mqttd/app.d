@@ -5,7 +5,7 @@ import mqttd.tcp;
 import std.stdio;
 
 
-private MqttServer gServer;
+private __gshared MqttServer gServer;
 
 shared static this() {
     //setLogLevel(LogLevel.debugV);
