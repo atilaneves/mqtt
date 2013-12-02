@@ -82,22 +82,6 @@ private:
 }
 
 
-private class PatternMatcher {
-    this(in string topic, in string[] pattern) {
-        _topic = topic;
-        _pattern = pattern;
-    }
-
-    bool isTopic(in string[] topics) const {
-        return !find(topics, _topic).empty;
-    }
-
-    abstract bool matches(in string[] topic) const;
-
-    const string _topic;
-    const string[] _pattern;
-}
-
 private struct Subscription {
     this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic) {
         _subscriber = subscriber;
@@ -129,7 +113,6 @@ private struct Subscription {
 private:
     const string _topic;
     const string[] _pattern;
-    const PatternMatcher _matcher;
     MqttSubscriber _subscriber;
     ubyte _qos;
 }
