@@ -61,15 +61,15 @@ public:
     }
 
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
-        foreach(t; topics) _subscriptions ~= Subscription(subscriber, t);
+        foreach(t; topics) addSubscription(Subscription(subscriber, t));
     }
 
     void unsubscribe(MqttSubscriber subscriber) {
-        _subscriptions = std.algorithm.remove!(s => s.isSubscriber(subscriber))(_subscriptions);
+        removeSubscription(subscriber);
     }
 
     void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
-        _subscriptions = std.algorithm.remove!(s => s.isSubscription(subscriber, topics))(_subscriptions);
+        removeSubscription(subscriber, topics);
     }
 
     void publish(in string topic, in string payload) {
@@ -78,14 +78,30 @@ public:
 
     void publish(in string topic, in ubyte[] payload) {
         const topParts = array(splitter(topic, "/"));
-        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
-            s.newMessage(topic, payload);
-        }
+        publish(topic, topParts, payload);
     }
 
 private:
 
     Subscription[] _subscriptions;
+
+    void addSubscription(Subscription s) {
+        _subscriptions ~= s;
+    }
+
+    void removeSubscription(MqttSubscriber subscriber) {
+        _subscriptions = std.algorithm.remove!(s => s.isSubscriber(subscriber))(_subscriptions);
+    }
+
+    void removeSubscription(MqttSubscriber subscriber, in string[] topics) {
+        _subscriptions = std.algorithm.remove!(s => s.isSubscription(subscriber, topics))(_subscriptions);
+    }
+
+    void publish(in string topic, in string[] topParts, in ubyte[] payload) {
+        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
+            s.newMessage(topic, payload);
+        }
+    }
 }
 
 
