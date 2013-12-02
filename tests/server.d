@@ -9,8 +9,8 @@ import std.stdio;
 
 class TestMqttConnection: MqttConnection {
     this(in ubyte[] bytes) {
-        super(bytes);
         connected = true;
+        connect = cast(MqttConnect)MqttFactory.create(bytes);
     }
 
     override void write(in ubyte[] bytes) {
@@ -27,6 +27,7 @@ class TestMqttConnection: MqttConnection {
     MqttMessage lastMsg;
     string[] payloads;
     bool connected;
+    MqttConnect connect;
 }
 
 void testConnect() {
@@ -44,7 +45,7 @@ void testConnect() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
     checkNotNull(connack);
     checkEqual(connack.code, MqttConnack.Code.ACCEPTED);
@@ -67,7 +68,7 @@ void testConnectBigId() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
     checkNotNull(connack);
     checkEqual(connack.code, MqttConnack.Code.BAD_ID);
@@ -88,7 +89,7 @@ void testConnectSmallId() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
     checkNotNull(connack);
     checkEqual(connack.code, MqttConnack.Code.BAD_ID);
@@ -109,7 +110,7 @@ void testSubscribe() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.publish("foo/bar/baz", "interesting stuff");
     checkEqual(connection.payloads, []);
@@ -146,7 +147,7 @@ void testSubscribeWithMessage() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.publish("foo/bar/baz", "interesting stuff");
     checkEqual(connection.payloads, []);
@@ -207,7 +208,7 @@ void testUnsubscribe() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.subscribe(connection, 42, ["foo/bar/+"]);
     const suback = cast(MqttSuback)connection.lastMsg;
@@ -252,7 +253,7 @@ void testUnsubscribeHandle() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     server.subscribe(connection, 42, ["foo/bar/+"]);
 
     server.publish("foo/bar/baz", "interesting stuff");
@@ -293,7 +294,7 @@ void testPing() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.ping(connection);
     const pingResp = cast(MqttPingResp)connection.lastMsg;
@@ -316,7 +317,7 @@ void testPingWithMessage() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     const msg = MqttFactory.create([0xc0, 0x00]); //ping request
     msg.handle(server, connection);
