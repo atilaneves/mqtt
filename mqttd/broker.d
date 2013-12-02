@@ -28,10 +28,7 @@ struct MqttBroker {
     }
 
     void publish(in string topic, in ubyte[] payload) {
-        const topParts = array(splitter(topic, "/"));
-        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
-            s.newMessage(topic, payload);
-        }
+        _subscriptions.publish(topic, payload);
     }
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
@@ -39,17 +36,15 @@ struct MqttBroker {
     }
 
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
-        foreach(topic; topics) {
-            _subscriptions ~= Subscription(subscriber, topic);
-        }
+        _subscriptions.subscribe(subscriber, topics);
     }
 
     void unsubscribe(MqttSubscriber subscriber) {
-        _subscriptions = std.algorithm.remove!(s => s.isSubscriber(subscriber))(_subscriptions);
+        _subscriptions.unsubscribe(subscriber);
     }
 
     void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
-        _subscriptions = std.algorithm.remove!(s => s.isSubscription(subscriber, topics))(_subscriptions);
+        _subscriptions.unsubscribe(subscriber, topics);
     }
 
     static bool matches(in string topic, in string pattern) {
@@ -74,6 +69,34 @@ struct MqttBroker {
             if(!patParts[i].equalOrPlus(topParts[i])) return false;
         }
         return true;
+    }
+
+private:
+
+    Subscriptions _subscriptions;
+}
+
+
+private struct Subscriptions {
+public:
+
+    void publish(in string topic, in ubyte[] payload) {
+        const topParts = array(splitter(topic, "/"));
+        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
+            s.newMessage(topic, payload);
+        }
+    }
+
+    void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
+        foreach(t; topics) _subscriptions ~= Subscription(subscriber, t);
+    }
+
+    void unsubscribe(MqttSubscriber subscriber) {
+        _subscriptions = std.algorithm.remove!(s => s.isSubscriber(subscriber))(_subscriptions);
+    }
+
+    void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
+        _subscriptions = std.algorithm.remove!(s => s.isSubscription(subscriber, topics))(_subscriptions);
     }
 
 private:
