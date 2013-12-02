@@ -23,29 +23,7 @@ private bool equalOrPlus(in string pat, in string top) pure nothrow {
 
 
 struct MqttBroker {
-    void publish(in string topic, in string payload) {
-        publish(topic, cast(ubyte[])payload);
-    }
-
-    void publish(in string topic, in ubyte[] payload) {
-        _subscriptions.publish(topic, payload);
-    }
-
-    void subscribe(MqttSubscriber subscriber, in string[] topics) {
-        subscribe(subscriber, array(map!(a => MqttSubscribe.Topic(a, 0))(topics)));
-    }
-
-    void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
-        _subscriptions.subscribe(subscriber, topics);
-    }
-
-    void unsubscribe(MqttSubscriber subscriber) {
-        _subscriptions.unsubscribe(subscriber);
-    }
-
-    void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
-        _subscriptions.unsubscribe(subscriber, topics);
-    }
+    alias subscriptions this;
 
     static bool matches(in string topic, in string pattern) {
         return matches(array(splitter(topic, "/")), pattern);
@@ -71,20 +49,15 @@ struct MqttBroker {
         return true;
     }
 
-private:
-
-    Subscriptions _subscriptions;
+    Subscriptions subscriptions;
 }
 
 
 private struct Subscriptions {
 public:
 
-    void publish(in string topic, in ubyte[] payload) {
-        const topParts = array(splitter(topic, "/"));
-        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
-            s.newMessage(topic, payload);
-        }
+    void subscribe(MqttSubscriber subscriber, in string[] topics) {
+        subscribe(subscriber, array(map!(a => MqttSubscribe.Topic(a, 0))(topics)));
     }
 
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
@@ -97,6 +70,17 @@ public:
 
     void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
         _subscriptions = std.algorithm.remove!(s => s.isSubscription(subscriber, topics))(_subscriptions);
+    }
+
+    void publish(in string topic, in string payload) {
+        publish(topic, cast(ubyte[])payload);
+    }
+
+    void publish(in string topic, in ubyte[] payload) {
+        const topParts = array(splitter(topic, "/"));
+        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
+            s.newMessage(topic, payload);
+        }
     }
 
 private:
