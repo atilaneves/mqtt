@@ -106,16 +106,43 @@ private struct SubscriptionTree {
 
     void printNodes(Node*[] nodes, int level = 0) {
         import std.stdio;
-        foreach(n; nodes) {
+        foreach(i, n; nodes) {
+            writeln("Node ", i, " at level ", level);
             if(!n.children) {
                 writeln("node at level ", level, " with part ", n.part, " topic ", n.subscription._topic,
                         " sub ", n.subscription);
             } else {
-                writeln("Going to level ", level + 1);
                 printNodes(n.children, level + 1);
             }
         }
     }
+
+    int countFinalNodes(Node*[] nodes) {
+        int acc;
+        foreach(n; nodes) {
+            if(!n.children) {
+                acc++;
+            } else {
+                acc += countFinalNodes(n.children);
+            }
+        }
+
+        return acc;
+    }
+
+    int countNodes(Node*[] nodes) {
+        int acc;
+        import std.stdio;
+        foreach(n; nodes) {
+            acc++;
+            if(n.children) {
+                acc += countNodes(n.children);
+            }
+        }
+
+        return acc;
+    }
+
 
     void addSubscriptionImpl(Subscription s, const(string)[] parts,
                              Node* parent, ref Node*[] nodes) {
@@ -133,7 +160,8 @@ private struct SubscriptionTree {
                         Node* parent, ref Node*[] nodes) {
         foreach(n; nodes) {
             if(part == n.part &&
-               n.subscription._subscriber == subscription._subscriber) {
+               (n.subscription._subscriber == subscription._subscriber ||
+                n.subscription._subscriber is null)) {
                 return n;
             }
         }
