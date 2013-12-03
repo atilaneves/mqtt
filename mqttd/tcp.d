@@ -19,9 +19,7 @@ class MqttTcpConnection: MqttConnection {
 
     override void write(in ubyte[] bytes) {
         if(connected) {
-            runTask({
-                _tcpConnection.write(bytes);
-            });
+            _tcpConnection.write(bytes);
         }
     }
 
