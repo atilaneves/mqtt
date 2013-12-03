@@ -51,10 +51,6 @@ private:
     bool _connected;
     MqttStream _stream;
 
-    auto readConnect() {
-        auto bytes = new ubyte[_tcpConnection.leastSize];
-    }
-
     auto read() {
         while(connected && !_tcpConnection.empty) {
             auto bytes = new ubyte[_tcpConnection.leastSize];
