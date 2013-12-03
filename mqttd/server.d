@@ -31,7 +31,8 @@ class MqttServer {
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
-        subscribe(connection, msgId, array(map!(a => MqttSubscribe.Topic(a, 0))(topics)));
+        enum qos = 0;
+        subscribe(connection, msgId, array(map!(a => MqttSubscribe.Topic(a, qos))(topics)));
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
