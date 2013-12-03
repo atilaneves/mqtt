@@ -1,6 +1,7 @@
 module tests.server;
 
 import unit_threaded.check;
+import unit_threaded.io;
 import mqttd.server;
 import mqttd.message;
 import mqttd.factory;
@@ -18,8 +19,8 @@ class TestMqttConnection: MqttConnection {
     }
 
     override void write(in ubyte[] bytes) {
-        writeln("TestMqttConnection got a message from the server");
         lastMsg = MqttFactory.create(bytes);
+        writelnUt("TestMqttConnection got a message from the server:\n", lastMsg, "\n");
     }
 
     override void newMessage(in string topic, in ubyte[] payload) {
@@ -286,34 +287,56 @@ void testSubscribeWildCard() {
     auto server = new MqttServer;
     TestMqttConnection[] reqs;
     TestMqttConnection[] reps;
-    immutable numConnections = 10;
-    foreach(i; 0..numConnections) {
+    TestMqttConnection[] wlds;
+    immutable numPairs = 2;
+    immutable numWilds = 2;
+
+    foreach(i; 0..numWilds) {
+        wlds ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+        server.newConnection(wlds[$ - 1], wlds[$ - 1].connect);
+        server.subscribe(wlds[$ - 1], cast(ushort)(i * 20 + 1), [text("pingtest/0/#")]);
+    }
+
+    foreach(i; 0..numPairs) {
         reqs ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
         server.newConnection(reqs[$ - 1], reqs[$ - 1].connect);
         server.subscribe(reqs[$ - 1], cast(ushort)(i * 2), [text("pingtest/", i, "/request")]);
+    }
 
+    foreach(i; 0..numPairs) {
         reps ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
         server.newConnection(reps[$ - 1], reps[$ - 1].connect);
         server.subscribe(reps[$ - 1], cast(ushort)(i * 2 + 1), [text("pingtest/", i, "/reply")]);
     }
-    auto wildConn = new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
-    server.newConnection(wildConn, wildConn.connect);
-    server.subscribe(wildConn, 133, ["pingtest/0/#"]);
 
+    writelnUt("Resetting received messages for every connection");
+    //reset all payloads from connack and suback
+    foreach(c; reqs) c.payloads = [];
+    foreach(c; reps) c.payloads = [];
+    foreach(c; wlds) c.payloads = [];
+
+    writelnUt("Publishing messages");
     immutable numMessages = 2;
-    foreach(i; 0..numConnections) {
+    foreach(i; 0..numPairs) {
         foreach(j; 0..numMessages) {
-            server.publish(text("pingtest/", i, "/request"), "ping");
-            server.publish(text("pingtest/", i, "/reply"), "pong");
+            writelnUt("Publishing ping ", i);
+            server.publish(text("pingtest/", i, "/request"), "pingawing");
+            writelnUt("Publishing pong ", i);
+            server.publish(text("pingtest/", i, "/reply"), "pongpongpong");
         }
     }
 
-    foreach(i; 0..numConnections) {
+    foreach(i; 0..numPairs) {
         checkEqual(reqs[i].payloads.length, numMessages);
+        foreach(p; reqs[i].payloads) checkEqual(cast(string)p, "pingawing");
         checkEqual(reps[i].payloads.length, numMessages);
+        foreach(p; reps[i].payloads) checkEqual(cast(string)p, "pongpongpong");
     }
 
-    checkEqual(wildConn.payloads.length, numMessages * 2);
+    foreach(i, c; wlds) {
+        writelnUt("Checking wsub ", i);
+        checkEqual(c.payloads.length, numMessages * 2);
+    }
 }
 
 

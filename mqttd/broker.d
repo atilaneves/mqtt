@@ -121,7 +121,7 @@ private struct SubscriptionTree {
                              Node* parent, ref Node*[] nodes) {
         auto part = parts[0];
         parts = parts[1 .. $];
-        auto node = addOrFindNode(part, parent, nodes);
+        auto node = addOrFindNode(s, part, parent, nodes);
         if(parts.empty) {
             node.subscription = s; //leaf node
         } else {
@@ -129,9 +129,13 @@ private struct SubscriptionTree {
         }
     }
 
-    Node* addOrFindNode(in string part, Node* parent, ref Node*[] nodes) {
+    Node* addOrFindNode(Subscription subscription, in string part,
+                        Node* parent, ref Node*[] nodes) {
         foreach(n; nodes) {
-            if(part == n.part) return n;
+            if(part == n.part &&
+               n.subscription._subscriber == subscription._subscriber) {
+                return n;
+            }
         }
         auto node = new Node(part, parent);
         nodes ~= node;
