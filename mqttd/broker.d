@@ -187,7 +187,7 @@ private struct SubscriptionTree {
 
     void publishLeaf(Subscription sub, in string topic, in const(ubyte)[] payload) {
         sub.newMessage(topic, payload);
-        _cache[topic] ~= sub;
+        if(_useCache) _cache[topic] ~= sub;
     }
 
 

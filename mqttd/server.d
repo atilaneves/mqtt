@@ -62,6 +62,10 @@ class MqttServer {
         connection.write((new MqttPingResp()).encode());
     }
 
+    @property void useCache(bool u) {
+        _broker.useCache = u;
+    }
+
 
 private:
 

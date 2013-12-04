@@ -12,6 +12,7 @@ shared static this() {
         setLogLevel(LogLevel.debugV);
     }
     gServer = new MqttServer();
+    gServer.useCache = true;
     listenTCP_s(1883, &accept);
 }
 
