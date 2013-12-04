@@ -74,6 +74,8 @@ class MqttConnection: MqttSubscriber {
         write(cast(immutable)(new MqttPublish(topic, payload)).encode());
     }
 
+    void read(ubyte[] bytes) {
+    }
     abstract void write(in ubyte[] bytes);
     abstract void disconnect();
 }

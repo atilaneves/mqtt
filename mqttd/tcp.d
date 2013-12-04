@@ -17,6 +17,10 @@ class MqttTcpConnection: MqttConnection {
         _stream = MqttStream();
     }
 
+    override void read(ubyte[] bytes) {
+        _tcpConnection.read(bytes);
+    }
+
     override void write(in ubyte[] bytes) {
         if(connected) {
             _tcpConnection.write(bytes);
@@ -54,14 +58,10 @@ private:
     auto read() {
         while(connected && !_tcpConnection.empty) {
             auto bytes = allocate();
-            doRead(bytes);
+            read(bytes);
             addToStream(bytes);
             handleMessages();
         }
-    }
-
-    auto doRead(ubyte[] bytes) {
-        _tcpConnection.read(bytes);
     }
 
     auto addToStream(ubyte[] bytes) {

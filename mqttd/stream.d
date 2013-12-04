@@ -1,10 +1,12 @@
 module mqttd.stream;
 
+import mqttd.server;
 import mqttd.message;
 import mqttd.factory;
 import cerealed.decerealiser;
 import std.stdio;
 import std.conv;
+
 
 struct MqttStream {
     void opOpAssign(string op: "~")(ubyte[] bytes) {
@@ -36,6 +38,15 @@ struct MqttStream {
         updateRemaining();
 
         return msg;
+    }
+
+    auto read(MqttServer server, MqttConnection connection, int size) {
+        auto bytes = new ubyte[size];
+        connection.read(bytes);
+        this ~= bytes;
+        while(hasMessages()) {
+            createMessage().handle(server, connection);
+        }
     }
 
 private:
