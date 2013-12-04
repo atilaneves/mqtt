@@ -40,7 +40,7 @@ struct MqttStream {
         return msg;
     }
 
-    auto read(MqttServer server, MqttConnection connection, int size) {
+    auto read(MqttServer server, MqttConnection connection, ulong size) {
         auto bytes = new ubyte[size];
         connection.read(bytes);
         this ~= bytes;
