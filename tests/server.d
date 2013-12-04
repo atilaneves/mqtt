@@ -309,19 +309,15 @@ void testSubscribeWildCard() {
         server.subscribe(reps[$ - 1], cast(ushort)(i * 2 + 1), [text("pingtest/", i, "/reply")]);
     }
 
-    writelnUt("Resetting received messages for every connection");
     //reset all payloads from connack and suback
     foreach(c; reqs) c.payloads = [];
     foreach(c; reps) c.payloads = [];
     foreach(c; wlds) c.payloads = [];
 
-    writelnUt("Publishing messages");
     immutable numMessages = 2;
     foreach(i; 0..numPairs) {
         foreach(j; 0..numMessages) {
-            writelnUt("Publishing ping ", i);
             server.publish(text("pingtest/", i, "/request"), "pingawing");
-            writelnUt("Publishing pong ", i);
             server.publish(text("pingtest/", i, "/reply"), "pongpongpong");
         }
     }
@@ -334,7 +330,6 @@ void testSubscribeWildCard() {
     }
 
     foreach(i, c; wlds) {
-        writelnUt("Checking wsub ", i);
         checkEqual(c.payloads.length, numMessages * 2);
     }
 }

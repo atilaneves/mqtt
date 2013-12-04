@@ -53,12 +53,28 @@ private:
 
     auto read() {
         while(connected && !_tcpConnection.empty) {
-            auto bytes = new ubyte[_tcpConnection.leastSize];
-            _tcpConnection.read(bytes);
-            _stream ~= bytes;
-            while(_stream.hasMessages()) {
-                _stream.createMessage().handle(_server, this);
-            }
+            auto bytes = allocate();
+            doRead(bytes);
+            addToStream(bytes);
+            handleMessages();
+        }
+    }
+
+    auto doRead(ubyte[] bytes) {
+        _tcpConnection.read(bytes);
+    }
+
+    auto addToStream(ubyte[] bytes) {
+        _stream ~= bytes;
+    }
+
+    auto allocate() {
+        return new ubyte[_tcpConnection.leastSize];
+    }
+
+    auto handleMessages() {
+        while(_stream.hasMessages()) {
+            _stream.createMessage().handle(_server, this);
         }
     }
 }

@@ -23,37 +23,6 @@ private bool equalOrPlus(in string pat, in string top) pure nothrow {
 
 
 struct MqttBroker {
-    alias subscriptions this;
-
-    static bool matches(in string topic, in string pattern) {
-        return matches(array(splitter(topic, "/")), pattern);
-    }
-
-    static bool matches(in string[] topParts, in string pattern) {
-        return matches(topParts, array(splitter(pattern, "/")));
-    }
-
-    static bool matches(in string[] topParts, in string[] patParts) {
-        immutable hasHash = patParts[$ - 1] == "#";
-        if(hasHash) {
-            //+1 here allows "finance/#" to match "finance"
-            if(patParts.length > topParts.length + 1) return false;
-        } else {
-            if(patParts.length != topParts.length) return false;
-        }
-
-        immutable end = cast(int)(hasHash ? patParts.length - 2 : patParts.length - 1);
-        for(int i = end; i >=0 ; --i) { //starts with same thing
-            if(!patParts[i].equalOrPlus(topParts[i])) return false;
-        }
-        return true;
-    }
-
-    Subscriptions subscriptions;
-}
-
-
-private struct Subscriptions {
 public:
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
@@ -61,7 +30,10 @@ public:
     }
 
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
-        foreach(t; topics) _subscriptions.addSubscription(Subscription(subscriber, t));
+        foreach(t; topics) {
+            const parts = array(splitter(t.topic, "/"));
+            _subscriptions.addSubscription(Subscription(subscriber, t, parts), parts);
+        }
     }
 
     void unsubscribe(MqttSubscriber subscriber) {
@@ -95,107 +67,76 @@ private struct SubscriptionTree {
     private static struct Node {
         string part;
         Node* parent;
-        Node*[] children;
-        Subscription subscription;
+        Node*[string] branches;
+        Subscription[] leaves;
     }
 
-    void addSubscription(Subscription s) {
-        assert(s.pattern.length);
-        addSubscriptionImpl(s, s.pattern, null, _nodes);
+    void addSubscription(Subscription s, in string[] parts) {
+        assert(parts.length);
+        addSubscriptionImpl(s, parts, null, _nodes);
     }
-
-    void printNodes(Node*[] nodes, int level = 0) {
-        import std.stdio;
-        foreach(i, n; nodes) {
-            writeln("Node ", i, " at level ", level);
-            if(!n.children) {
-                writeln("node at level ", level, " with part ", n.part, " topic ", n.subscription._topic,
-                        " sub ", n.subscription);
-            } else {
-                printNodes(n.children, level + 1);
-            }
-        }
-    }
-
-    int countFinalNodes(Node*[] nodes) {
-        int acc;
-        foreach(n; nodes) {
-            if(!n.children) {
-                acc++;
-            } else {
-                acc += countFinalNodes(n.children);
-            }
-        }
-
-        return acc;
-    }
-
-    int countNodes(Node*[] nodes) {
-        int acc;
-        import std.stdio;
-        foreach(n; nodes) {
-            acc++;
-            if(n.children) {
-                acc += countNodes(n.children);
-            }
-        }
-
-        return acc;
-    }
-
 
     void addSubscriptionImpl(Subscription s, const(string)[] parts,
-                             Node* parent, ref Node*[] nodes) {
+                             Node* parent, ref Node*[string] nodes) {
         auto part = parts[0];
         parts = parts[1 .. $];
         auto node = addOrFindNode(s, part, parent, nodes);
         if(parts.empty) {
-            node.subscription = s; //leaf node
+            node.leaves ~= s;
         } else {
-            addSubscriptionImpl(s, parts, node, node.children);
+            addSubscriptionImpl(s, parts, node, node.branches);
         }
     }
 
     Node* addOrFindNode(Subscription subscription, in string part,
-                        Node* parent, ref Node*[] nodes) {
-        foreach(n; nodes) {
-            if(part == n.part &&
-               (n.subscription._subscriber == subscription._subscriber ||
-                n.subscription._subscriber is null)) {
+                        Node* parent, ref Node*[string] nodes) {
+        if(part in nodes) {
+            auto n = nodes[part];
+            if(part == n.part) {
                 return n;
             }
         }
         auto node = new Node(part, parent);
-        nodes ~= node;
+        nodes[part] = node;
         return node;
     }
 
-    void removeSubscription(MqttSubscriber subscriber, ref Node*[] nodes) {
-        foreach(n; nodes) {
-            if(!n.children && n.subscription.isSubscriber(subscriber)) {
-                removeNode(n.parent, n);
+    void removeSubscription(MqttSubscriber subscriber, ref Node*[string] nodes) {
+        auto newnodes = nodes.dup;
+        foreach(n; newnodes) {
+            if(n.leaves) {
+                n.leaves = std.algorithm.remove!(l => l.isSubscriber(subscriber))(n.leaves);
+                if(n.leaves.empty && !n.branches.length) {
+                    removeNode(n.parent, n);
+                }
             } else {
-                removeSubscription(subscriber, n.children);
+                removeSubscription(subscriber, n.branches);
             }
         }
     }
 
-    void removeSubscription(MqttSubscriber subscriber, in string[] topic, ref Node*[] nodes) {
-        foreach(n; nodes) {
-            if(!n.children && n.subscription.isSubscription(subscriber, topic)) {
-                removeNode(n.parent, n);
+    void removeSubscription(MqttSubscriber subscriber, in string[] topic, ref Node*[string] nodes) {
+        auto newnodes = nodes.dup;
+        foreach(n; newnodes) {
+            if(n.leaves) {
+                n.leaves = std.algorithm.remove!(l => l.isSubscription(subscriber, topic))(n.leaves);
+                if(n.leaves.empty && !n.branches.length) {
+                    removeNode(n.parent, n);
+                }
             } else {
-                removeSubscription(subscriber, topic, n.children);
+                removeSubscription(subscriber, topic, n.branches);
             }
         }
     }
 
     void removeNode(Node* parent, Node* child) {
-        if(parent)
-            parent.children = std.algorithm.remove!(c => c == child)(parent.children);
-        else
-            _nodes = std.algorithm.remove!(c => c == child)(_nodes);
-        if(parent && parent.children.empty) removeNode(parent.parent, parent);
+        if(parent) {
+            parent.branches.remove(child.part);
+        } else {
+            _nodes.remove(child.part);
+        }
+        if(parent && !parent.branches.length && parent.leaves.empty)
+            removeNode(parent.parent, parent);
     }
 
     void publish(in string topic, string[] topParts, in const(ubyte)[] payload) {
@@ -203,20 +144,28 @@ private struct SubscriptionTree {
     }
 
     void publish(in string topic, string[] topParts, in const(ubyte)[] payload,
-                 Node*[] nodes) {
-        auto part = topParts[0];
-        foreach(n; nodes) {
-            if(n.part == "#" && !n.children) {
-                n.subscription.newMessage(topic, payload);
-                continue;
+                 Node*[string] nodes) {
+
+        foreach(part; [topParts[0], "#", "+"]) {
+            if(part in nodes) {
+                publishLeaves(topic, payload, topParts, nodes[part].leaves);
+                if(topParts.length > 1) {
+                    publish(topic, topParts[1..$], payload, nodes[part].branches);
+                }
             }
-            if(!equalOrPlus(n.part, part)) {
-                continue;
+        }
+    }
+
+    void publishLeaves(in string topic, in const(ubyte)[] payload,
+                       in string[] topParts,
+                       Subscription[] subscriptions) {
+        foreach(sub; subscriptions) {
+            if(topParts.length == 1 &&
+                      equalOrPlus(sub._part, topParts[0])) {
+                sub.newMessage(topic, payload);
             }
-            if(topParts.length == 1) {
-                n.subscription.newMessage(topic, payload);
-            } else {
-                publish(topic, topParts[1 .. $], payload, n.children);
+            else if(sub._part == "#") {
+                sub.newMessage(topic, payload);
             }
         }
     }
@@ -224,23 +173,20 @@ private struct SubscriptionTree {
 
 private:
 
-    Node*[] _nodes;
+    Node*[string] _nodes;
 }
 
+
 private struct Subscription {
-    this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic) {
+    this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic, in string[] topicParts) {
         _subscriber = subscriber;
+        _part = topicParts[$ - 1];
         _topic = topic.topic;
-        _pattern = array(splitter(topic.topic, "/"));
         _qos = topic.qos;
     }
 
     this(Subscription s) {
         //no need to store anything
-    }
-
-    @property const(string)[] pattern() const {
-        return _pattern;
     }
 
     void newMessage(in string topic, in ubyte[] payload) {
@@ -262,8 +208,8 @@ private struct Subscription {
     Subscription[string] children;
 
 private:
-    string _topic;
-    string[] _pattern;
     MqttSubscriber _subscriber;
+    string _part;
+    string _topic;
     ubyte _qos;
 }
