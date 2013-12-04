@@ -14,7 +14,8 @@ class MqttTcpConnection: MqttConnection {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
-        _stream = MqttStream();
+        enum bufferSize = 1024;
+        _stream = MqttStream(bufferSize);
     }
 
     override void read(ubyte[] bytes) {

@@ -10,7 +10,7 @@ void testMqttInTwoPackets() {
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
                        'b', 'o', 'r' ]; //1st part of payload
-    auto stream = MqttStream();
+    auto stream = MqttStream(128);
     stream ~= bytes1;
     checkFalse(stream.hasMessages());
     checkNull(stream.createMessage());
@@ -28,7 +28,7 @@ void testTwoMqttInThreePackets() {
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
                        'a', 'b', 'c' ]; //1st part of payload
-    auto stream = MqttStream();
+    auto stream = MqttStream(128);
     stream ~= bytes1;
     checkFalse(stream.hasMessages());
     checkNull(stream.createMessage());
@@ -51,7 +51,7 @@ void testTwoMqttInThreePackets() {
 
 
 void testTwoMqttInOnePacket() {
-   auto stream = MqttStream();
+   auto stream = MqttStream(128);
    checkFalse(stream.hasMessages());
    checkTrue(stream.empty());
 
