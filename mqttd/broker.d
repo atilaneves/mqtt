@@ -4,6 +4,7 @@ module mqttd.broker;
 import mqttd.message;
 import std.algorithm;
 import std.array;
+import std.typecons;
 
 
 interface MqttSubscriber {
@@ -53,6 +54,10 @@ public:
         publish(topic, topParts, payload);
     }
 
+    @property void useCache(bool u) {
+        _subscriptions._useCache = u;
+    }
+
 private:
 
     SubscriptionTree _subscriptions;
@@ -73,6 +78,7 @@ private struct SubscriptionTree {
 
     void addSubscription(Subscription s, in string[] parts) {
         assert(parts.length);
+        if(_useCache) _cache = _cache.init; //invalidate cache
         addSubscriptionImpl(s, parts, null, _nodes);
     }
 
@@ -102,6 +108,7 @@ private struct SubscriptionTree {
     }
 
     void removeSubscription(MqttSubscriber subscriber, ref Node*[string] nodes) {
+        if(_useCache) _cache = _cache.init; //invalidate cache
         auto newnodes = nodes.dup;
         foreach(n; newnodes) {
             if(n.leaves) {
@@ -116,6 +123,7 @@ private struct SubscriptionTree {
     }
 
     void removeSubscription(MqttSubscriber subscriber, in string[] topic, ref Node*[string] nodes) {
+        if(_useCache) _cache = _cache.init; //invalidate cache
         auto newnodes = nodes.dup;
         foreach(n; newnodes) {
             if(n.leaves) {
@@ -146,6 +154,13 @@ private struct SubscriptionTree {
     void publish(in string topic, string[] topParts, in const(ubyte)[] payload,
                  Node*[string] nodes) {
 
+        //check the cache first
+        if(_useCache && topic in _cache) {
+            foreach(s; _cache[topic]) s.newMessage(topic, payload);
+            return;
+        }
+
+        //not in the cache or not using the cache, do it the hard way
         foreach(part; [topParts[0], "#", "+"]) {
             if(part in nodes) {
                 publishLeaves(topic, payload, topParts, nodes[part].leaves);
@@ -162,17 +177,24 @@ private struct SubscriptionTree {
         foreach(sub; subscriptions) {
             if(topParts.length == 1 &&
                       equalOrPlus(sub._part, topParts[0])) {
-                sub.newMessage(topic, payload);
+                publishLeaf(sub, topic, payload);
             }
             else if(sub._part == "#") {
-                sub.newMessage(topic, payload);
+                publishLeaf(sub, topic, payload);
             }
         }
+    }
+
+    void publishLeaf(Subscription sub, in string topic, in const(ubyte)[] payload) {
+        sub.newMessage(topic, payload);
+        _cache[topic] ~= sub;
     }
 
 
 private:
 
+    bool _useCache;
+    Subscription[] _cache[string];
     Node*[string] _nodes;
 }
 
