@@ -5,7 +5,7 @@
     "homepage": "https://github.com/atilaneves/mqtt",
     "authors": ["Atila Neves"],
     "license": "BSD 3-clause",
-    "sourcePaths": ["mqttd", "cerealed/cerealed"],
+    "sourcePaths": ["mqttd"],
     "importPaths": ["mqttd"],
     "targetType": "executable",
     "dependencies": {
