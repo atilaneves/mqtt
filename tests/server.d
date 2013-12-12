@@ -1,6 +1,7 @@
 module tests.server;
 
 import unit_threaded.check;
+import unit_threaded.io;
 import mqttd.server;
 import mqttd.message;
 import mqttd.factory;
@@ -9,13 +10,17 @@ import std.stdio;
 
 class TestMqttConnection: MqttConnection {
     this(in ubyte[] bytes) {
-        super(bytes);
+        connect = cast(MqttConnect)MqttFactory.create(bytes);
+    }
+
+    this(MqttConnect connect) {
         connected = true;
+        this.connect = connect;
     }
 
     override void write(in ubyte[] bytes) {
-        writeln("TestMqttConnection got a message from the server");
         lastMsg = MqttFactory.create(bytes);
+        writelnUt("TestMqttConnection got a message from the server:\n", lastMsg, "\n");
     }
 
     override void newMessage(in string topic, in ubyte[] payload) {
@@ -27,6 +32,7 @@ class TestMqttConnection: MqttConnection {
     MqttMessage lastMsg;
     string[] payloads;
     bool connected;
+    MqttConnect connect;
 }
 
 void testConnect() {
@@ -44,7 +50,7 @@ void testConnect() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
     checkNotNull(connack);
     checkEqual(connack.code, MqttConnack.Code.ACCEPTED);
@@ -67,7 +73,7 @@ void testConnectBigId() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
     checkNotNull(connack);
     checkEqual(connack.code, MqttConnack.Code.BAD_ID);
@@ -88,7 +94,7 @@ void testConnectSmallId() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
     checkNotNull(connack);
     checkEqual(connack.code, MqttConnack.Code.BAD_ID);
@@ -109,7 +115,7 @@ void testSubscribe() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.publish("foo/bar/baz", "interesting stuff");
     checkEqual(connection.payloads, []);
@@ -146,7 +152,7 @@ void testSubscribeWithMessage() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.publish("foo/bar/baz", "interesting stuff");
     checkEqual(connection.payloads, []);
@@ -207,7 +213,7 @@ void testUnsubscribe() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.subscribe(connection, 42, ["foo/bar/+"]);
     const suback = cast(MqttSuback)connection.lastMsg;
@@ -252,7 +258,7 @@ void testUnsubscribeHandle() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
     server.subscribe(connection, 42, ["foo/bar/+"]);
 
     server.publish("foo/bar/baz", "interesting stuff");
@@ -276,6 +282,57 @@ void testUnsubscribeHandle() {
     checkEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
 }
 
+void testSubscribeWildCard() {
+    import std.conv;
+    auto server = new MqttServer;
+    TestMqttConnection[] reqs;
+    TestMqttConnection[] reps;
+    TestMqttConnection[] wlds;
+    immutable numPairs = 2;
+    immutable numWilds = 2;
+
+    foreach(i; 0..numWilds) {
+        wlds ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+        server.newConnection(wlds[$ - 1], wlds[$ - 1].connect);
+        server.subscribe(wlds[$ - 1], cast(ushort)(i * 20 + 1), [text("pingtest/0/#")]);
+    }
+
+    foreach(i; 0..numPairs) {
+        reqs ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+        server.newConnection(reqs[$ - 1], reqs[$ - 1].connect);
+        server.subscribe(reqs[$ - 1], cast(ushort)(i * 2), [text("pingtest/", i, "/request")]);
+    }
+
+    foreach(i; 0..numPairs) {
+        reps ~= new TestMqttConnection(new MqttConnect(MqttFixedHeader()));
+        server.newConnection(reps[$ - 1], reps[$ - 1].connect);
+        server.subscribe(reps[$ - 1], cast(ushort)(i * 2 + 1), [text("pingtest/", i, "/reply")]);
+    }
+
+    //reset all payloads from connack and suback
+    foreach(c; reqs) c.payloads = [];
+    foreach(c; reps) c.payloads = [];
+    foreach(c; wlds) c.payloads = [];
+
+    immutable numMessages = 2;
+    foreach(i; 0..numPairs) {
+        foreach(j; 0..numMessages) {
+            server.publish(text("pingtest/", i, "/request"), "pingawing");
+            server.publish(text("pingtest/", i, "/reply"), "pongpongpong");
+        }
+    }
+
+    foreach(i; 0..numPairs) {
+        checkEqual(reqs[i].payloads.length, numMessages);
+        foreach(p; reqs[i].payloads) checkEqual(cast(string)p, "pingawing");
+        checkEqual(reps[i].payloads.length, numMessages);
+        foreach(p; reps[i].payloads) checkEqual(cast(string)p, "pongpongpong");
+    }
+
+    foreach(i, c; wlds) {
+        checkEqual(c.payloads.length, numMessages * 2);
+    }
+}
 
 
 void testPing() {
@@ -293,7 +350,7 @@ void testPing() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     server.ping(connection);
     const pingResp = cast(MqttPingResp)connection.lastMsg;
@@ -316,7 +373,7 @@ void testPingWithMessage() {
         ];
 
     auto connection = new TestMqttConnection(bytes);
-    server.newConnection(connection);
+    server.newConnection(connection, connection.connect);
 
     const msg = MqttFactory.create([0xc0, 0x00]); //ping request
     msg.handle(server, connection);

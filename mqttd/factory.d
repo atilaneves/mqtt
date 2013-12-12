@@ -2,7 +2,7 @@ module mqttd.factory;
 
 
 import mqttd.message;
-import cerealed;
+import cerealed.decerealiser;
 import std.stdio;
 
 

@@ -1,45 +1,48 @@
 module mqttd.tcp;
 
-
 import mqttd.server;
 import mqttd.factory;
 import mqttd.message;
 import mqttd.stream;
-import std.stdio;
+import mqttd.message;
 import vibe.d;
+import std.stdio;
+
 
 class MqttTcpConnection: MqttConnection {
     this(MqttServer server, TCPConnection tcpConnection) {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
+        enum bufferSize = 1024 * 16;
+        _stream = MqttStream(bufferSize);
+    }
 
-        logDebug("MqttTcpConnection reading ", _tcpConnection.leastSize, " bytes");
-        super(read());
+    override void read(ubyte[] bytes) {
+        _tcpConnection.read(bytes);
     }
 
     override void write(in ubyte[] bytes) {
-        if(_connected) {
+        if(connected) {
             _tcpConnection.write(bytes);
         }
     }
 
     void run() {
-        auto stream = MqttStream();
-        do {
+        while(connected) {
             if(!_tcpConnection.waitForData(60.seconds) ) {
-                logDebug("persistent connection timeout!");
+                stderr.writeln("Persistent connection timeout!");
+                _connected = false;
                 break;
             }
 
-            stream ~= read();
+            read();
+        }
+        _connected = false;
+    }
 
-            do {
-                const msg = stream.createMessage();
-                if(msg) msg.handle(_server, this);
-            } while(stream.hasMessages());
-
-        } while(_tcpConnection.connected && _connected);
+    @property bool connected() const {
+        return _tcpConnection.connected && _connected;
     }
 
     override void disconnect() {
@@ -51,10 +54,11 @@ private:
     MqttServer _server;
     TCPConnection _tcpConnection;
     bool _connected;
+    MqttStream _stream;
 
     auto read() {
-        auto bytes = new ubyte[_tcpConnection.leastSize];
-        _tcpConnection.read(bytes);
-        return bytes;
+        while(connected && !_tcpConnection.empty) {
+            _stream.read(_server, this, _tcpConnection.leastSize);
+        }
     }
 }

@@ -4,6 +4,7 @@ module mqttd.broker;
 import mqttd.message;
 import std.algorithm;
 import std.array;
+import std.typecons;
 
 
 interface MqttSubscriber {
@@ -12,7 +13,7 @@ interface MqttSubscriber {
 
 private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
     if(str1.length != str2.length) return false;
-    for(long i = str1.length - 1; i >= 0; --i)
+    for(auto i = cast(int)str1.length - 1; i >= 0; --i)
         if(str1[i] != str2[i]) return false;
     return true;
 }
@@ -23,108 +24,191 @@ private bool equalOrPlus(in string pat, in string top) pure nothrow {
 
 
 struct MqttBroker {
-    void publish(in string topic, in string payload) {
-        publish(topic, cast(ubyte[])payload);
-    }
-
-    void publish(in string topic, in ubyte[] payload) {
-        const topParts = array(splitter(topic, "/"));
-        foreach(ref s; filter!(s => s.matches(topParts))(_subscriptions)) {
-            s.newMessage(topic, payload);
-        }
-    }
+public:
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
         subscribe(subscriber, array(map!(a => MqttSubscribe.Topic(a, 0))(topics)));
     }
 
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
-        foreach(topic; topics) {
-            _subscriptions ~= Subscription(subscriber, topic);
+        foreach(t; topics) {
+            const parts = array(splitter(t.topic, "/"));
+            _subscriptions.addSubscription(Subscription(subscriber, t, parts), parts);
         }
     }
 
     void unsubscribe(MqttSubscriber subscriber) {
-        _subscriptions = std.algorithm.remove!(s => s.isSubscriber(subscriber))(_subscriptions);
+        _subscriptions.removeSubscription(subscriber, _subscriptions._nodes);
     }
 
     void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
-        _subscriptions = std.algorithm.remove!(s => s.isSubscription(subscriber, topics))(_subscriptions);
+        _subscriptions.removeSubscription(subscriber, topics, _subscriptions._nodes);
     }
 
-    static bool matches(in string topic, in string pattern) {
-        return matches(array(splitter(topic, "/")), pattern);
+    void publish(in string topic, in string payload) {
+        publish(topic, cast(ubyte[])payload);
     }
 
-    static bool matches(in string[] topParts, in string pattern) {
-        return PatternMatcherFactory.create(pattern).matches(topParts);
+    void publish(in string topic, in ubyte[] payload) {
+        auto topParts = array(splitter(topic, "/"));
+        publish(topic, topParts, payload);
+    }
+
+    @property void useCache(bool u) {
+        _subscriptions._useCache = u;
     }
 
 private:
 
-    Subscription[] _subscriptions;
+    SubscriptionTree _subscriptions;
+
+    void publish(in string topic, string[] topParts, in ubyte[] payload) {
+        _subscriptions.publish(topic, topParts, payload);
+    }
 }
 
 
-private class PatternMatcher {
-    this(in string topic, in string[] pattern) {
-        _topic = topic;
-        _pattern = pattern;
+private struct SubscriptionTree {
+    private static struct Node {
+        string part;
+        Node* parent;
+        Node*[string] branches;
+        Subscription[] leaves;
     }
 
-    bool isTopic(in string[] topics) const {
-        return !find(topics, _topic).empty;
+    void addSubscription(Subscription s, in string[] parts) {
+        assert(parts.length);
+        if(_useCache) _cache = _cache.init; //invalidate cache
+        addSubscriptionImpl(s, parts, null, _nodes);
     }
 
-    abstract bool matches(in string[] topic) const;
-
-    const string _topic;
-    const string[] _pattern;
-}
-
-private class PlusMatcher: PatternMatcher {
-    this(in string topic, in string[] pattern) { super(topic, pattern); }
-
-    override bool matches(in string[] topic) const {
-        if(_pattern.length != topic.length) return false;
-        for(long i = topic.length - 1; i >= 0; --i) {
-            if(!_pattern[i].equalOrPlus(topic[i])) return false;
+    void addSubscriptionImpl(Subscription s, const(string)[] parts,
+                             Node* parent, ref Node*[string] nodes) {
+        auto part = parts[0];
+        parts = parts[1 .. $];
+        auto node = addOrFindNode(s, part, parent, nodes);
+        if(parts.empty) {
+            node.leaves ~= s;
+        } else {
+            addSubscriptionImpl(s, parts, node, node.branches);
         }
-        return true;
     }
-};
 
-private class HashMatcher: PatternMatcher {
-    this(in string topic, in string[] pattern) { super(topic, pattern); }
-
-    override bool matches(in string[] topic) const {
-        //+1 here allows "finance/#" to match "finance"
-        if(_pattern.length > topic.length + 1) return false;
-        for(long i = _pattern.length - 2; i >=0 ; --i) { //starts with same thing
-            if(!_pattern[i].equalOrPlus(topic[i])) return false;
+    Node* addOrFindNode(Subscription subscription, in string part,
+                        Node* parent, ref Node*[string] nodes) {
+        if(part in nodes) {
+            auto n = nodes[part];
+            if(part == n.part) {
+                return n;
+            }
         }
-        return true;
+        auto node = new Node(part, parent);
+        nodes[part] = node;
+        return node;
     }
+
+    void removeSubscription(MqttSubscriber subscriber, ref Node*[string] nodes) {
+        if(_useCache) _cache = _cache.init; //invalidate cache
+        auto newnodes = nodes.dup;
+        foreach(n; newnodes) {
+            if(n.leaves) {
+                n.leaves = std.algorithm.remove!(l => l.isSubscriber(subscriber))(n.leaves);
+                if(n.leaves.empty && !n.branches.length) {
+                    removeNode(n.parent, n);
+                }
+            } else {
+                removeSubscription(subscriber, n.branches);
+            }
+        }
+    }
+
+    void removeSubscription(MqttSubscriber subscriber, in string[] topic, ref Node*[string] nodes) {
+        if(_useCache) _cache = _cache.init; //invalidate cache
+        auto newnodes = nodes.dup;
+        foreach(n; newnodes) {
+            if(n.leaves) {
+                n.leaves = std.algorithm.remove!(l => l.isSubscription(subscriber, topic))(n.leaves);
+                if(n.leaves.empty && !n.branches.length) {
+                    removeNode(n.parent, n);
+                }
+            } else {
+                removeSubscription(subscriber, topic, n.branches);
+            }
+        }
+    }
+
+    void removeNode(Node* parent, Node* child) {
+        if(parent) {
+            parent.branches.remove(child.part);
+        } else {
+            _nodes.remove(child.part);
+        }
+        if(parent && !parent.branches.length && parent.leaves.empty)
+            removeNode(parent.parent, parent);
+    }
+
+    void publish(in string topic, string[] topParts, in const(ubyte)[] payload) {
+        publish(topic, topParts, payload, _nodes);
+    }
+
+    void publish(in string topic, string[] topParts, in const(ubyte)[] payload,
+                 Node*[string] nodes) {
+
+        //check the cache first
+        if(_useCache && topic in _cache) {
+            foreach(s; _cache[topic]) s.newMessage(topic, payload);
+            return;
+        }
+
+        //not in the cache or not using the cache, do it the hard way
+        foreach(part; [topParts[0], "#", "+"]) {
+            if(part in nodes) {
+                publishLeaves(topic, payload, topParts, nodes[part].leaves);
+                if(topParts.length > 1) {
+                    publish(topic, topParts[1..$], payload, nodes[part].branches);
+                }
+            }
+        }
+    }
+
+    void publishLeaves(in string topic, in const(ubyte)[] payload,
+                       in string[] topParts,
+                       Subscription[] subscriptions) {
+        foreach(sub; subscriptions) {
+            if(topParts.length == 1 &&
+                      equalOrPlus(sub._part, topParts[0])) {
+                publishLeaf(sub, topic, payload);
+            }
+            else if(sub._part == "#") {
+                publishLeaf(sub, topic, payload);
+            }
+        }
+    }
+
+    void publishLeaf(Subscription sub, in string topic, in const(ubyte)[] payload) {
+        sub.newMessage(topic, payload);
+        if(_useCache) _cache[topic] ~= sub;
+    }
+
+
+private:
+
+    bool _useCache;
+    Subscription[] _cache[string];
+    Node*[string] _nodes;
 }
 
-private class PatternMatcherFactory {
-    static PatternMatcher create(in string topic) {
-        const pattern = array(splitter(topic, "/"));
-        const index = countUntil(pattern, "#");
-        if(index == -1) return new PlusMatcher(topic, pattern);
-        return new HashMatcher(topic, pattern);
-    }
-}
 
 private struct Subscription {
-    this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic) {
+    this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic, in string[] topicParts) {
         _subscriber = subscriber;
-        _matcher = PatternMatcherFactory.create(topic.topic);
+        _part = topicParts[$ - 1];
+        _topic = topic.topic;
         _qos = topic.qos;
     }
 
-    bool matches(in string[] topic) const {
-        return _matcher.matches(topic);
+    this(Subscription s) {
+        //no need to store anything
     }
 
     void newMessage(in string topic, in ubyte[] payload) {
@@ -136,11 +220,18 @@ private struct Subscription {
     }
 
     bool isSubscription(MqttSubscriber subscriber, in string[] topics) const {
-        return isSubscriber(subscriber) && _matcher.isTopic(topics);
+        return isSubscriber(subscriber) && isTopic(topics);
     }
 
+    bool isTopic(in string[] topics) const {
+        return !find(topics, _topic).empty;
+    }
+
+    Subscription[string] children;
+
 private:
-    const PatternMatcher _matcher;
     MqttSubscriber _subscriber;
+    string _part;
+    string _topic;
     ubyte _qos;
 }
