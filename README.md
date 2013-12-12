@@ -3,7 +3,7 @@ mqtt
 
 MQTT broker written in D, using [vibe.d](https://github.com/rejectedsoftware/vibe.d).
 
-Doesn't yet implement all of MQTT. There is no authenticatin nor QOS levels other than 0.
+Doesn't yet implement all of MQTT. There is no authentication nor QOS levels other than 0.
 It can be used for testing however and does correctly subscribe, unsubscribe and
 dispatches messages.
 
