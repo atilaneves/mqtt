@@ -153,7 +153,6 @@ private struct SubscriptionTree {
 
     void publish(in string topic, string[] topParts, in const(ubyte)[] payload,
                  Node*[string] nodes) {
-
         //check the cache first
         if(_useCache && topic in _cache) {
             foreach(s; _cache[topic]) s.newMessage(topic, payload);
@@ -163,6 +162,10 @@ private struct SubscriptionTree {
         //not in the cache or not using the cache, do it the hard way
         foreach(part; [topParts[0], "#", "+"]) {
             if(part in nodes) {
+                if(topParts.length == 1 && "#" in nodes[part].branches) {
+                    //So that "finance/#" matches finance
+                    publishLeaves(topic, payload, topParts, nodes[part].branches["#"].leaves);
+                }
                 publishLeaves(topic, payload, topParts, nodes[part].leaves);
                 if(topParts.length > 1) {
                     publish(topic, topParts[1..$], payload, nodes[part].branches);
@@ -176,7 +179,7 @@ private struct SubscriptionTree {
                        Subscription[] subscriptions) {
         foreach(sub; subscriptions) {
             if(topParts.length == 1 &&
-                      equalOrPlus(sub._part, topParts[0])) {
+               equalOrPlus(sub._part, topParts[0])) {
                 publishLeaf(sub, topic, payload);
             }
             else if(sub._part == "#") {

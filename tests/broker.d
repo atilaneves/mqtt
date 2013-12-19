@@ -65,24 +65,36 @@ void testUnsubscribeOne() {
 }
 
 
-// void testWildCards() {
-//    auto broker = MqttBroker();
-//    checkTrue(broker.matches("foo/bar/baz", "foo/bar/baz"));
-//    checkTrue(broker.matches("foo/bar", "foo/+"));
-//    checkTrue(broker.matches("foo/baz", "foo/+"));
-//    checkFalse(broker.matches("foo/bar/baz", "foo/+"));
-//    checkTrue(broker.matches("foo/bar", "foo/#"));
-//    checkTrue(broker.matches("foo/bar/baz", "foo/#"));
-//    checkTrue(broker.matches("foo/bar/baz/boo", "foo/#"));
-//    checkTrue(broker.matches("foo/bla/bar/baz/boo/bogadog", "foo/+/bar/baz/#"));
-//    checkTrue(broker.matches("finance", "finance/#"));
-//    checkFalse(broker.matches("finance", "finance#"));
-//    checkTrue(broker.matches("finance", "#"));
-//    checkTrue(broker.matches("finance/stock", "#"));
-//    checkFalse(broker.matches("finance/stock", "finance/stock/ibm"));
-//    checkTrue(broker.matches("topics/foo/bar", "topics/foo/#"));
-//    checkFalse(broker.matches("topics/bar/baz/boo", "topics/foo/#"));
-// }
+private void checkMatches(in string pubTopic, in string subTopic, bool matches) {
+    auto broker = MqttBroker();
+    auto subscriber = new TestMqttSubscriber();
+
+    broker.subscribe(subscriber, [subTopic]);
+    broker.publish(pubTopic, "payload");
+    const expected = matches ? ["payload"] : [];
+    writelnUt("checkMatches, subTopic is ", subTopic, " pubTopic is ", pubTopic,
+              ", matches is ", matches);
+    checkEqual(subscriber.messages, expected);
+}
+
+
+void testWildCards() {
+   checkMatches("foo/bar/baz", "foo/bar/baz", true);
+   checkMatches("foo/bar", "foo/+", true);
+   checkMatches("foo/baz", "foo/+", true);
+   checkMatches("foo/bar/baz", "foo/+", false);
+   checkMatches("foo/bar", "foo/#", true);
+   checkMatches("foo/bar/baz", "foo/#", true);
+   checkMatches("foo/bar/baz/boo", "foo/#", true);
+   checkMatches("foo/bla/bar/baz/boo/bogadog", "foo/+/bar/baz/#", true);
+   checkMatches("finance", "finance/#", true);
+   checkMatches("finance", "finance#", false);
+   checkMatches("finance", "#", true);
+   checkMatches("finance/stock", "#", true);
+   checkMatches("finance/stock", "finance/stock/ibm", false);
+   checkMatches("topics/foo/bar", "topics/foo/#", true);
+   checkMatches("topics/bar/baz/boo", "topics/foo/#", false);
+}
 
 
 void testSubscribeWithWildCards() {
