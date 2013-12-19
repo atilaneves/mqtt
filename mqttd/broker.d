@@ -211,10 +211,6 @@ private struct Subscription {
         _qos = topic.qos;
     }
 
-    this(Subscription s) {
-        //no need to store anything
-    }
-
     void newMessage(in string topic, in ubyte[] payload) {
         _subscriber.newMessage(topic, payload);
     }
