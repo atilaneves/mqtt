@@ -11,17 +11,6 @@ interface MqttSubscriber {
     void newMessage(in string topic, in ubyte[] payload);
 }
 
-private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
-    if(str1.length != str2.length) return false;
-    for(auto i = cast(int)str1.length - 1; i >= 0; --i)
-        if(str1[i] != str2[i]) return false;
-    return true;
-}
-
-private bool equalOrPlus(in string pat, in string top) pure nothrow {
-    return pat == "+" || pat.revStrEquals(top);
-}
-
 
 struct MqttBroker {
 public:
@@ -65,6 +54,18 @@ private:
     void publish(in string topic, string[] topParts, in ubyte[] payload) {
         _subscriptions.publish(topic, topParts, payload);
     }
+}
+
+
+private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
+    if(str1.length != str2.length) return false;
+    for(auto i = cast(int)str1.length - 1; i >= 0; --i)
+        if(str1[i] != str2[i]) return false;
+    return true;
+}
+
+private bool equalOrPlus(in string pat, in string top) pure nothrow {
+    return pat == "+" || pat.revStrEquals(top);
 }
 
 
