@@ -87,7 +87,7 @@ private struct SubscriptionTree {
                              Node* parent, ref Node*[string] nodes) {
         auto part = parts[0];
         parts = parts[1 .. $];
-        auto node = addOrFindNode(s, part, parent, nodes);
+        auto node = addOrFindNode(part, parent, nodes);
         if(parts.empty) {
             node.leaves ~= s;
         } else {
@@ -95,7 +95,7 @@ private struct SubscriptionTree {
         }
     }
 
-    Node* addOrFindNode(Subscription subscription, in string part,
+    Node* addOrFindNode(in string part,
                         Node* parent, ref Node*[string] nodes) {
         if(part in nodes) {
             auto n = nodes[part];
