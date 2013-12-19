@@ -231,8 +231,6 @@ private struct Subscription {
         return !find(topics, _topic).empty;
     }
 
-    Subscription[string] children;
-
 private:
     MqttSubscriber _subscriber;
     string _part;
