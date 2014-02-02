@@ -1,5 +1,6 @@
 mqtt
 =============
+[![Build Status](https://travis-ci.org/atilaneves/mqtt.png?branch=master)](https://travis-ci.org/atilaneves/mqtt)
 
 MQTT broker written in D, using [vibe.d](https://github.com/rejectedsoftware/vibe.d).
 
