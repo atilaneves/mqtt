@@ -11,17 +11,6 @@ interface MqttSubscriber {
     void newMessage(in string topic, in ubyte[] payload);
 }
 
-private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
-    if(str1.length != str2.length) return false;
-    for(auto i = cast(int)str1.length - 1; i >= 0; --i)
-        if(str1[i] != str2[i]) return false;
-    return true;
-}
-
-private bool equalOrPlus(in string pat, in string top) pure nothrow {
-    return pat == "+" || pat.revStrEquals(top);
-}
-
 
 struct MqttBroker {
 public:
@@ -68,6 +57,18 @@ private:
 }
 
 
+private bool revStrEquals(in string str1, in string str2) pure nothrow { //compare strings in reverse
+    if(str1.length != str2.length) return false;
+    for(auto i = cast(int)str1.length - 1; i >= 0; --i)
+        if(str1[i] != str2[i]) return false;
+    return true;
+}
+
+private bool equalOrPlus(in string pat, in string top) pure nothrow {
+    return pat == "+" || pat.revStrEquals(top);
+}
+
+
 private struct SubscriptionTree {
     private static struct Node {
         string part;
@@ -86,7 +87,7 @@ private struct SubscriptionTree {
                              Node* parent, ref Node*[string] nodes) {
         auto part = parts[0];
         parts = parts[1 .. $];
-        auto node = addOrFindNode(s, part, parent, nodes);
+        auto node = addOrFindNode(part, parent, nodes);
         if(parts.empty) {
             node.leaves ~= s;
         } else {
@@ -94,7 +95,7 @@ private struct SubscriptionTree {
         }
     }
 
-    Node* addOrFindNode(Subscription subscription, in string part,
+    Node* addOrFindNode(in string part,
                         Node* parent, ref Node*[string] nodes) {
         if(part in nodes) {
             auto n = nodes[part];
@@ -153,7 +154,6 @@ private struct SubscriptionTree {
 
     void publish(in string topic, string[] topParts, in const(ubyte)[] payload,
                  Node*[string] nodes) {
-
         //check the cache first
         if(_useCache && topic in _cache) {
             foreach(s; _cache[topic]) s.newMessage(topic, payload);
@@ -163,6 +163,10 @@ private struct SubscriptionTree {
         //not in the cache or not using the cache, do it the hard way
         foreach(part; [topParts[0], "#", "+"]) {
             if(part in nodes) {
+                if(topParts.length == 1 && "#" in nodes[part].branches) {
+                    //So that "finance/#" matches finance
+                    publishLeaves(topic, payload, topParts, nodes[part].branches["#"].leaves);
+                }
                 publishLeaves(topic, payload, topParts, nodes[part].leaves);
                 if(topParts.length > 1) {
                     publish(topic, topParts[1..$], payload, nodes[part].branches);
@@ -176,7 +180,7 @@ private struct SubscriptionTree {
                        Subscription[] subscriptions) {
         foreach(sub; subscriptions) {
             if(topParts.length == 1 &&
-                      equalOrPlus(sub._part, topParts[0])) {
+               equalOrPlus(sub._part, topParts[0])) {
                 publishLeaf(sub, topic, payload);
             }
             else if(sub._part == "#") {
@@ -207,10 +211,6 @@ private struct Subscription {
         _qos = topic.qos;
     }
 
-    this(Subscription s) {
-        //no need to store anything
-    }
-
     void newMessage(in string topic, in ubyte[] payload) {
         _subscriber.newMessage(topic, payload);
     }
@@ -226,8 +226,6 @@ private struct Subscription {
     bool isTopic(in string[] topics) const {
         return !find(topics, _topic).empty;
     }
-
-    Subscription[string] children;
 
 private:
     MqttSubscriber _subscriber;

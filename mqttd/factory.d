@@ -26,29 +26,29 @@ struct MqttFactory {
 
         cereal.reset(); //so the messages created below can re-read the header
 
-        switch(fixedHeader.type) {
-        case MqttType.CONNECT:
+        switch(fixedHeader.type) with(MqttType) {
+        case CONNECT:
             return cereal.value!MqttConnect(fixedHeader);
-        case MqttType.CONNACK:
+        case CONNACK:
             return cereal.value!MqttConnack;
-        case MqttType.PUBLISH:
+        case PUBLISH:
             return cereal.value!MqttPublish(fixedHeader);
-        case MqttType.SUBSCRIBE:
+        case SUBSCRIBE:
             if(fixedHeader.qos != 1) {
                 stderr.writeln("SUBSCRIBE message with qos ", fixedHeader.qos, ", should be 1");
             }
             return cereal.value!MqttSubscribe(fixedHeader);
-        case MqttType.SUBACK:
+        case SUBACK:
             return cereal.value!MqttSuback(fixedHeader);
-        case MqttType.UNSUBSCRIBE:
+        case UNSUBSCRIBE:
             return cereal.value!MqttUnsubscribe(fixedHeader);
-        case MqttType.UNSUBACK:
+        case UNSUBACK:
             return cereal.value!MqttUnsuback(fixedHeader);
-        case MqttType.PINGREQ:
+        case PINGREQ:
             return new MqttPingReq();
-        case MqttType.PINGRESP:
+        case PINGRESP:
             return new MqttPingResp();
-        case MqttType.DISCONNECT:
+        case DISCONNECT:
             return new MqttDisconnect();
         default:
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
