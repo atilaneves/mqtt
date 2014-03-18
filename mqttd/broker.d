@@ -16,7 +16,7 @@ struct MqttBroker {
 public:
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
-        subscribe(subscriber, array(map!(a => MqttSubscribe.Topic(a, 0))(topics)));
+        subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a, 0)).array);
     }
 
     void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
@@ -224,7 +224,7 @@ private struct Subscription {
     }
 
     bool isTopic(in string[] topics) const {
-        return !find(topics, _topic).empty;
+        return !topics.find(_topic).empty;
     }
 
 private:

@@ -10,6 +10,7 @@ import std.algorithm;
 import std.array;
 
 
+/**Used with UFCS to encode different MQTT messages below*/
 private auto encode(T)(T msg) {
     auto cereal = new Cerealiser();
     cereal ~= msg;
@@ -32,11 +33,11 @@ class MqttServer {
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
         enum qos = 0;
-        subscribe(connection, msgId, array(map!(a => MqttSubscribe.Topic(a, qos))(topics)));
+        subscribe(connection, msgId, topics.map!(a => MqttSubscribe.Topic(a, qos)).array);
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
-        const qos = array(map!(a => a.qos)(topics));
+        const qos = topics.map!(a => a.qos).array;
         connection.write((new MqttSuback(msgId, qos)).encode());
         _broker.subscribe(connection, topics);
     }

@@ -9,9 +9,14 @@ import std.conv;
 import std.algorithm;
 import std.exception;
 
+version(Win32) {
+    alias unsigned = uint;
+} else {
+    alias unsigned = ulong;
+}
 
 struct MqttStream {
-    this(ulong bufferSize) {
+    this(unsigned bufferSize) {
         allocate(bufferSize);
     }
 
@@ -27,7 +32,7 @@ struct MqttStream {
         updateRemaining();
     }
 
-    auto read(MqttServer server, MqttConnection connection, ulong size) {
+    auto read(MqttServer server, MqttConnection connection, unsigned size) {
         checkRealloc(size);
         immutable end = _bytesRead + size;
 
@@ -74,15 +79,15 @@ private:
     ubyte[] _buffer;
     ubyte[] _bytes;
     int _remaining;
-    ulong _bytesRead;
-    ulong _bytesStart;
+    unsigned _bytesRead;
+    unsigned _bytesStart;
 
-    void allocate(ulong bufferSize = 128) {
+    void allocate(unsigned bufferSize = 128) {
         enforce(bufferSize > 10, "bufferSize too small");
         _buffer = new ubyte[bufferSize];
     }
 
-    void checkRealloc(ulong numBytes) {
+    void checkRealloc(unsigned numBytes) {
         if(!_buffer) {
             allocate();
         }
