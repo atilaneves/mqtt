@@ -8,4 +8,5 @@ install:
  - git clone https://github.com/atilaneves/unit-threaded.git
  - git clone https://github.com/atilaneves/dtest.git
  - git clone https://github.com/atilaneves/cerealed.git
-script: rdmd -Iunit-threaded dtest/dtest.d -u unit-threaded -Icerealed
+before_script: cd dtest; dub build; cd ..
+script: dtest/dtest -u unit-threaded -I cerealed
