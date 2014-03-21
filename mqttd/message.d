@@ -276,6 +276,7 @@ class MqttPingReq: MqttMessage {
 
 class MqttPingResp: MqttMessage {
     const(ubyte[]) encode() const {
-        return [0xd0, 0x00];
+        static immutable ubyte[] bytes = [0xd0, 0x00];
+        return bytes;
     }
 }
