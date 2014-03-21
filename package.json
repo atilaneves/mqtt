@@ -6,7 +6,7 @@
     "authors": ["Atila Neves"],
     "license": "BSD 3-clause",
     "sourcePaths": ["mqttd"],
-    "importPaths": ["mqttd", "../cerealed"],
+    "importPaths": ["mqttd"],
     "targetType": "executable",
     "dependencies": {
         "vibe-d": "~master",
