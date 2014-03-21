@@ -82,7 +82,7 @@ private:
 
 class MqttConnection: MqttSubscriber {
     override void newMessage(in string topic, in ubyte[] payload) {
-        write(cast(immutable)(new MqttPublish(topic, payload).encode));
+        write(cast(immutable)(encode(new MqttPublish(topic, payload))));
     }
 
     void read(ubyte[] bytes) {
