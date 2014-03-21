@@ -11,7 +11,8 @@ import std.array;
 
 
 private auto encode(T)(T msg) {
-    auto cereal = new Cerealiser;
+    __gshared static auto cereal = new Cerealiser;
+    cereal.reset();
     cereal ~= msg;
     return cereal.bytes;
 }
