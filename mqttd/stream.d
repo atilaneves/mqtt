@@ -12,6 +12,7 @@ import std.exception;
 
 struct MqttStream {
     this(ulong bufferSize) {
+        _cereal = new Decerealiser;
         allocate(bufferSize);
     }
 
@@ -76,6 +77,7 @@ private:
     int _remaining;
     ulong _bytesRead;
     ulong _bytesStart;
+    Decerealiser _cereal;
 
     void allocate(ulong bufferSize = 128) {
         enforce(bufferSize > 10, "bufferSize too small");
@@ -97,8 +99,8 @@ private:
 
     void updateRemaining() {
         if(!_remaining && _bytes.length >= MqttFixedHeader.SIZE) {
-            auto cereal = new Decerealiser(slice());
-            _remaining = cereal.value!MqttFixedHeader.remaining;
+            _cereal.reset(slice());
+            _remaining = _cereal.value!MqttFixedHeader.remaining;
         }
     }
 
