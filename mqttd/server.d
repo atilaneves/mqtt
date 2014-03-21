@@ -36,7 +36,7 @@ class MqttServer {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        connection.write(newEncode(new MqttConnack(code)));
+        connection.write(encode(new MqttConnack(code)));
     }
 
     private auto newEncode(T)(T msg) {
