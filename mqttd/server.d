@@ -10,11 +10,10 @@ import std.algorithm;
 import std.array;
 
 
-private auto encode(T)(T msg) {
-    __gshared static auto cereal = new Cerealiser;
-    cereal.reset();
-    cereal ~= msg;
-    return cereal.bytes;
+private auto encode(T)(T msg, Cerealiser enc) {
+    enc.reset();
+    enc ~= msg;
+    return enc.bytes;
 }
 
 
@@ -33,7 +32,7 @@ class MqttServer {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        connection.write(encode(new MqttConnack(code)));
+        connection.write(encode(new MqttConnack(code), _cereal));
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
@@ -43,7 +42,7 @@ class MqttServer {
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = array(map!(a => a.qos)(topics));
-        connection.write(encode(new MqttSuback(msgId, qos)));
+        connection.write(encode(new MqttSuback(msgId, qos), _cereal));
         _broker.subscribe(connection, topics);
     }
 
@@ -52,7 +51,7 @@ class MqttServer {
     }
 
     void unsubscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
-        connection.write(encode(new MqttUnsuback(msgId)));
+        connection.write(encode(new MqttUnsuback(msgId), _cereal));
         _broker.unsubscribe(connection, topics);
     }
 
@@ -81,12 +80,20 @@ private:
 
 
 class MqttConnection: MqttSubscriber {
+    this() {
+        _cereal = new Cerealiser;
+    }
+
     override void newMessage(in string topic, in ubyte[] payload) {
-        write(cast(immutable)(encode(new MqttPublish(topic, payload))));
+        write(cast(immutable)(encode(new MqttPublish(topic, payload), _cereal)));
     }
 
     void read(ubyte[] bytes) {
     }
     abstract void write(in ubyte[] bytes);
     abstract void disconnect();
+
+private:
+
+    Cerealiser _cereal;
 }
