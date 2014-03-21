@@ -52,7 +52,7 @@ class MqttServer {
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = array(map!(a => a.qos)(topics));
-        connection.write(newEncode(new MqttSuback(msgId, qos)));
+        connection.write(encode(new MqttSuback(msgId, qos)));
         _broker.subscribe(connection, topics);
     }
 
