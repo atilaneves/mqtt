@@ -17,9 +17,6 @@ private auto encode(T)(T msg) {
     return cereal.bytes;
 }
 
-private auto newEncode(T)(T msg) {
-
-}
 
 class MqttServer {
     this() {
@@ -39,12 +36,6 @@ class MqttServer {
         connection.write(encode(new MqttConnack(code)));
     }
 
-    private auto newEncode(T)(T msg) {
-        _cereal.reset();
-        _cereal ~= msg;
-        return _cereal.bytes;
-    }
-
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
         enum qos = 0;
         subscribe(connection, msgId, array(map!(a => MqttSubscribe.Topic(a, qos))(topics)));
@@ -61,7 +52,7 @@ class MqttServer {
     }
 
     void unsubscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
-        connection.write(newEncode(new MqttUnsuback(msgId)));
+        connection.write(encode(new MqttUnsuback(msgId)));
         _broker.unsubscribe(connection, topics);
     }
 
