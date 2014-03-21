@@ -11,7 +11,7 @@ import std.array;
 
 
 private auto encode(T)(T msg) {
-    auto cereal = new Cerealiser();
+    auto cereal = new Cerealiser;
     cereal ~= msg;
     return cereal.bytes;
 }
@@ -27,7 +27,12 @@ class MqttServer {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        connection.write((new MqttConnack(code)).encode());
+        __gshared static auto enc = new Cerealiser();
+        enc.reset();
+        assert(enc.bytes == []);
+        enc ~= new MqttConnack(code);
+        connection.write(enc.bytes);
+        //connection.write((new MqttConnack(code)).encode());
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
