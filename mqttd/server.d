@@ -17,6 +17,10 @@ private auto encode(T)(T msg) {
 }
 
 class MqttServer {
+    this() {
+        _cereal = new Cerealiser;
+    }
+
     void newConnection(MqttConnection connection, const MqttConnect connect) {
         if(!connect) {
             stderr.writeln("Invalid connect message");
@@ -27,12 +31,13 @@ class MqttServer {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        __gshared static auto enc = new Cerealiser();
-        enc.reset();
-        assert(enc.bytes == []);
-        enc ~= new MqttConnack(code);
-        connection.write(enc.bytes);
-        //connection.write((new MqttConnack(code)).encode());
+        connection.write(newEncode(new MqttConnack(code)));
+    }
+
+    private auto newEncode(T)(T msg) {
+        _cereal.reset();
+        _cereal ~= msg;
+        return _cereal.bytes;
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
@@ -75,6 +80,7 @@ class MqttServer {
 private:
 
     MqttBroker _broker;
+    Cerealiser _cereal;
 }
 
 
