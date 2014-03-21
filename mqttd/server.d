@@ -16,6 +16,10 @@ private auto encode(T)(T msg) {
     return cereal.bytes;
 }
 
+private auto newEncode(T)(T msg) {
+
+}
+
 class MqttServer {
     this() {
         _cereal = new Cerealiser;
@@ -47,7 +51,7 @@ class MqttServer {
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = array(map!(a => a.qos)(topics));
-        connection.write((new MqttSuback(msgId, qos)).encode());
+        connection.write(newEncode(new MqttSuback(msgId, qos)));
         _broker.subscribe(connection, topics);
     }
 
@@ -56,7 +60,7 @@ class MqttServer {
     }
 
     void unsubscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
-        connection.write((new MqttUnsuback(msgId)).encode());
+        connection.write(newEncode(new MqttUnsuback(msgId)));
         _broker.unsubscribe(connection, topics);
     }
 
@@ -69,7 +73,7 @@ class MqttServer {
     }
 
     void ping(MqttConnection connection) const {
-        connection.write((new MqttPingResp()).encode());
+        connection.write(new MqttPingResp().encode());
     }
 
     @property void useCache(bool u) {
@@ -86,7 +90,7 @@ private:
 
 class MqttConnection: MqttSubscriber {
     override void newMessage(in string topic, in ubyte[] payload) {
-        write(cast(immutable)(new MqttPublish(topic, payload)).encode());
+        write(cast(immutable)(new MqttPublish(topic, payload).encode));
     }
 
     void read(ubyte[] bytes) {
