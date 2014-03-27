@@ -38,11 +38,11 @@ public:
     void postBlit(Cereal cereal) {
         //custom serialisation needed due to remaining size field
         final switch(cereal.type) {
-        case Cereal.Type.Write:
+        case CerealType.Write:
             setRemainingSize(cereal);
             break;
 
-        case Cereal.Type.Read:
+        case CerealType.Read:
             remaining = getRemainingSize(cereal);
             break;
         }
@@ -173,14 +173,14 @@ public:
     void postBlit(Cereal cereal) {
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
-            if(header.remaining < 7 && cereal.type == Cereal.Type.Read) {
+            if(header.remaining < 7 && cereal.type == CerealType.Read) {
                 stderr.writeln("Error: PUBLISH message with QOS but no message ID");
             } else {
                 cereal.grain(msgId);
                 payloadLen -= 2;
             }
         }
-        if(cereal.type == Cereal.Type.Read) payload.length = payloadLen;
+        if(cereal.type == CerealType.Read) payload.length = payloadLen;
         foreach(ref b; payload) cereal.grain(b);
     }
 
