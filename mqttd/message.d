@@ -35,7 +35,7 @@ public:
     @Bits!1 bool retain;
     @NoCereal uint remaining;
 
-    void postBlit(Cereal cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) {
         //custom serialisation needed due to remaining size field
         final switch(cereal.type) {
         case CerealType.Write:
@@ -50,7 +50,7 @@ public:
 
 private:
 
-    uint getRemainingSize(Cereal cereal) {
+    uint getRemainingSize(Cereal)(ref Cereal cereal) {
         //algorithm straight from the MQTT spec
         int multiplier = 1;
         uint value = 0;
@@ -64,7 +64,7 @@ private:
         return value;
     }
 
-    void setRemainingSize(Cereal cereal) const {
+    void setRemainingSize(Cereal)(ref Cereal cereal) const {
         //algorithm straight from the MQTT spec
         ubyte[] digits;
         uint x = remaining;
@@ -92,7 +92,7 @@ public:
         this.header = header;
     }
 
-    void postBlit(Cereal cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) {
         if(hasWill) cereal.grain(willTopic);
         if(hasWill) cereal.grain(willMessage);
         if(hasUserName) cereal.grain(userName);
@@ -170,7 +170,7 @@ public:
         this.msgId = msgId;
     }
 
-    void postBlit(Cereal cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) {
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
             if(header.remaining < 7 && cereal.type == CerealType.Read) {
