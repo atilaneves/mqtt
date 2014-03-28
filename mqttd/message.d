@@ -2,7 +2,7 @@ module mqttd.message;
 
 
 import mqttd.server;
-import cerealed.cereal;
+import cerealed;
 import std.stdio;
 import std.algorithm;
 
@@ -35,18 +35,16 @@ public:
     @Bits!1 bool retain;
     @NoCereal uint remaining;
 
-    void postBlit(Cereal)(ref Cereal cereal) {
-        //custom serialisation needed due to remaining size field
-        final switch(cereal.type) {
-        case CerealType.Write:
-            setRemainingSize(cereal);
-            break;
 
-        case CerealType.Read:
-            remaining = getRemainingSize(cereal);
-            break;
-        }
+    void postBlit(Cereal)(ref Cereal cereal) if(isInputCereal!Cereal) {
+        setRemainingSize(cereal);
     }
+
+    void postBlit(Cereal)(ref Cereal cereal) if(isOutputCereal!Cereal) {
+        remaining = getRemainingSize(cereal);
+    }
+
+    mixin assertHasPostBlit!MqttFixedHeader;
 
 private:
 
@@ -98,6 +96,8 @@ public:
         if(hasUserName) cereal.grain(userName);
         if(hasPassword) cereal.grain(password);
     }
+
+    mixin assertHasPostBlit!MqttConnect;
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
@@ -168,21 +168,32 @@ public:
         this.topic = topic;
         this.payload = payload.dup;
         this.msgId = msgId;
+        import cerealed.cerealiser;
+        auto enc = Cerealiser();
+        this.postBlit(enc);
     }
 
     void postBlit(Cereal)(ref Cereal cereal) {
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
-            if(header.remaining < 7 && cereal.type == CerealType.Read) {
-                stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+            static if(Cereal.type == CerealType.ReadBytes) {
+                if(header.remaining < 7) {
+                    stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+                } else {
+                    cereal.grain(msgId);
+                    payloadLen -= 2;
+                }
             } else {
                 cereal.grain(msgId);
                 payloadLen -= 2;
             }
         }
-        if(cereal.type == CerealType.Read) payload.length = payloadLen;
+
+        static if(Cereal.type == CerealType.ReadBytes) payload.length = payloadLen;
         foreach(ref b; payload) cereal.grain(b);
     }
+
+    mixin assertHasPostBlit!MqttPublish;
 
     override void handle(MqttServer server, MqttConnection connection) const {
         server.publish(topic, payload);

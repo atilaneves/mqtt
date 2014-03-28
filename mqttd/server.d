@@ -12,7 +12,7 @@ import std.array;
 
 /**Used with UFCS to encode different MQTT messages below*/
 private auto encode(T)(T msg) {
-    auto cereal = new Cerealiser();
+    auto cereal = Cerealiser();
     cereal ~= msg;
     return cereal.bytes;
 }
