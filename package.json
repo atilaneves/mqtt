@@ -10,6 +10,6 @@
     "targetType": "executable",
     "dependencies": {
         "vibe-d": "~master",
-        "cerealed": "~master"
+        "cerealed": "==0.4.1"
     }
 }
