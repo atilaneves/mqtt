@@ -36,11 +36,11 @@ public:
     @NoCereal uint remaining;
 
 
-    void postBlit(Cereal)(ref Cereal cereal) if(isInputCereal!Cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) if(isCerealiser!Cereal) {
         setRemainingSize(cereal);
     }
 
-    void postBlit(Cereal)(ref Cereal cereal) if(isOutputCereal!Cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) if(isDecerealiser!Cereal) {
         remaining = getRemainingSize(cereal);
     }
 
