@@ -286,7 +286,7 @@ class MqttPingReq: MqttMessage {
 }
 
 class MqttPingResp: MqttMessage {
-    const(ubyte[]) encode() const {
+    @property const(ubyte[]) encode() const {
         return [0xd0, 0x00];
     }
 }

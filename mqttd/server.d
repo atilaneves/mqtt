@@ -10,13 +10,6 @@ import std.algorithm;
 import std.array;
 
 
-/**Used with UFCS to encode different MQTT messages below*/
-private auto encode(T)(T msg) {
-    auto cereal = Cerealiser();
-    cereal ~= msg;
-    return cereal.bytes;
-}
-
 class MqttServer {
     void newConnection(MqttConnection connection, const MqttConnect connect) {
         if(!connect) {
@@ -28,7 +21,7 @@ class MqttServer {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        connection.write((new MqttConnack(code)).encode());
+        new MqttConnack(code).cerealise!(b => connection.write(b));
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
@@ -38,7 +31,7 @@ class MqttServer {
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = topics.map!(a => a.qos).array;
-        connection.write((new MqttSuback(msgId, qos)).encode());
+        new MqttSuback(msgId, qos).cerealise!(b => connection.write(b));
         _broker.subscribe(connection, topics);
     }
 
@@ -47,7 +40,7 @@ class MqttServer {
     }
 
     void unsubscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
-        connection.write((new MqttUnsuback(msgId)).encode());
+        new MqttUnsuback(msgId).cerealise!(b => connection.write(b));
         _broker.unsubscribe(connection, topics);
     }
 
@@ -60,7 +53,7 @@ class MqttServer {
     }
 
     void ping(MqttConnection connection) const {
-        connection.write((new MqttPingResp()).encode());
+        connection.write((new MqttPingResp).encode);
     }
 
     @property void useCache(bool u) {
@@ -76,7 +69,7 @@ private:
 
 class MqttConnection: MqttSubscriber {
     override void newMessage(in string topic, in ubyte[] payload) {
-        write(cast(immutable)(new MqttPublish(topic, payload)).encode());
+        new MqttPublish(topic, payload).cerealise!(b => write(cast(immutable)b));
     }
 
     void read(ubyte[] bytes) {
