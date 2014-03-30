@@ -168,9 +168,6 @@ public:
         this.topic = topic;
         this.payload = payload.dup;
         this.msgId = msgId;
-        import cerealed.cerealiser;
-        auto enc = Cerealiser();
-        this.postBlit(enc);
     }
 
     void postBlit(Cereal)(ref Cereal cereal) {
