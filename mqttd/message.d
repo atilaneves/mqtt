@@ -2,7 +2,7 @@ module mqttd.message;
 
 
 import mqttd.server;
-import cerealed.cereal;
+import cerealed;
 import std.stdio;
 import std.algorithm;
 
@@ -35,22 +35,20 @@ public:
     @Bits!1 bool retain;
     @NoCereal uint remaining;
 
-    void postBlit(Cereal cereal) {
-        //custom serialisation needed due to remaining size field
-        final switch(cereal.type) {
-        case Cereal.Type.Write:
-            setRemainingSize(cereal);
-            break;
 
-        case Cereal.Type.Read:
-            remaining = getRemainingSize(cereal);
-            break;
-        }
+    void postBlit(Cereal)(ref Cereal cereal) if(isCerealiser!Cereal) {
+        setRemainingSize(cereal);
     }
+
+    void postBlit(Cereal)(ref Cereal cereal) if(isDecerealiser!Cereal) {
+        remaining = getRemainingSize(cereal);
+    }
+
+    mixin assertHasPostBlit!MqttFixedHeader;
 
 private:
 
-    uint getRemainingSize(Cereal cereal) {
+    uint getRemainingSize(Cereal)(ref Cereal cereal) {
         //algorithm straight from the MQTT spec
         int multiplier = 1;
         uint value = 0;
@@ -64,7 +62,7 @@ private:
         return value;
     }
 
-    void setRemainingSize(Cereal cereal) const {
+    void setRemainingSize(Cereal)(ref Cereal cereal) const {
         //algorithm straight from the MQTT spec
         ubyte[] digits;
         uint x = remaining;
@@ -92,12 +90,14 @@ public:
         this.header = header;
     }
 
-    void postBlit(Cereal cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) {
         if(hasWill) cereal.grain(willTopic);
         if(hasWill) cereal.grain(willMessage);
         if(hasUserName) cereal.grain(userName);
         if(hasPassword) cereal.grain(password);
     }
+
+    mixin assertHasPostBlit!MqttConnect;
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
@@ -170,19 +170,27 @@ public:
         this.msgId = msgId;
     }
 
-    void postBlit(Cereal cereal) {
+    void postBlit(Cereal)(ref Cereal cereal) {
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
-            if(header.remaining < 7 && cereal.type == Cereal.Type.Read) {
-                stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+            static if(Cereal.type == CerealType.ReadBytes) {
+                if(header.remaining < 7) {
+                    stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+                } else {
+                    cereal.grain(msgId);
+                    payloadLen -= 2;
+                }
             } else {
                 cereal.grain(msgId);
                 payloadLen -= 2;
             }
         }
-        if(cereal.type == Cereal.Type.Read) payload.length = payloadLen;
+
+        static if(Cereal.type == CerealType.ReadBytes) payload.length = payloadLen;
         foreach(ref b; payload) cereal.grain(b);
     }
+
+    mixin assertHasPostBlit!MqttPublish;
 
     override void handle(MqttServer server, MqttConnection connection) const {
         server.publish(topic, payload);
@@ -275,7 +283,7 @@ class MqttPingReq: MqttMessage {
 }
 
 class MqttPingResp: MqttMessage {
-    const(ubyte[]) encode() const {
+    @property const(ubyte[]) encode() const {
         return [0xd0, 0x00];
     }
 }

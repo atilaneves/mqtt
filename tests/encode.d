@@ -7,13 +7,13 @@ import mqttd.message;
 import mqttd.factory;
 
 void testCerealiseFixedHeader() {
-    auto cereal = new Cerealiser();
+    auto cereal = Cerealiser();
     cereal ~= MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
     checkEqual(cereal.bytes, [0x3c, 0x5]);
 }
 
 void testDecerealiseMqttHeader() {
-     auto cereal = new Decerealiser([0x3c, 0x5]);
+     auto cereal = Decerealiser([0x3c, 0x5]);
      const header = cereal.value!MqttFixedHeader;
      checkEqual(header.type, MqttType.PUBLISH);
      checkEqual(header.dup, true);
@@ -23,13 +23,13 @@ void testDecerealiseMqttHeader() {
 }
 
 private auto encode(in MqttFixedHeader header) {
-    auto cereal = new Cerealiser;
+    auto cereal = Cerealiser();
     cereal ~= cast(MqttFixedHeader) header;
     return cereal.bytes;
 }
 
 private auto headerFromBytes(in ubyte[] bytes) {
-    auto cereal = new Decerealiser(bytes);
+    auto cereal = Decerealiser(bytes);
     return cereal.value!MqttFixedHeader;
 }
 
@@ -123,7 +123,7 @@ void testConnectMsg() {
 }
 
 void testConnackMsg() {
-    auto cereal = new Cerealiser();
+    auto cereal = Cerealiser();
     cereal ~= new MqttConnack(MqttConnack.Code.SERVER_UNAVAILABLE);
     checkEqual(cereal.bytes, [0x20, 0x2, 0x0, 0x3]);
 }
@@ -173,7 +173,7 @@ void testDecodePublishWithBadSize() {
 }
 
 private auto encodeMsg(T)(T msg) {
-    auto cereal = new Cerealiser;
+    auto cereal = Cerealiser();
     cereal ~= msg;
     return cereal.bytes;
 }

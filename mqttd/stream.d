@@ -102,7 +102,7 @@ private:
 
     void updateRemaining() {
         if(!_remaining && _bytes.length >= MqttFixedHeader.SIZE) {
-            auto cereal = new Decerealiser(slice());
+            auto cereal = Decerealiser(slice());
             _remaining = cereal.value!MqttFixedHeader.remaining;
         }
     }

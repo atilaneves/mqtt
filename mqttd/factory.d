@@ -8,7 +8,7 @@ import std.stdio;
 
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
-        auto cereal = new Decerealiser(bytes);
+        auto cereal = Decerealiser(bytes);
         auto fixedHeader = cereal.value!MqttFixedHeader;
         if(fixedHeader.remaining < cereal.bytes.length) {
             stderr.writeln("Wrong MQTT remaining size ", cast(int)fixedHeader.remaining,
