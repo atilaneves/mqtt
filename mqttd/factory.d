@@ -21,7 +21,7 @@ struct MqttFactory {
         case CONNECT:
             return cereal.value!MqttConnect(fixedHeader);
         case CONNACK:
-            return cereal.value!MqttConnack;
+            return cereal.value!MqttConnack(fixedHeader);
         case PUBLISH:
             return cereal.value!MqttPublish(fixedHeader);
         case SUBSCRIBE:
@@ -33,11 +33,11 @@ struct MqttFactory {
         case UNSUBACK:
             return cereal.value!MqttUnsuback(fixedHeader);
         case PINGREQ:
-            return new MqttPingReq();
+            return new MqttPingReq(fixedHeader);
         case PINGRESP:
-            return new MqttPingResp();
+            return new MqttPingResp(fixedHeader);
         case DISCONNECT:
-            return new MqttDisconnect();
+            return new MqttDisconnect(fixedHeader);
         default:
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
             return null;

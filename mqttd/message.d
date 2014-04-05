@@ -136,8 +136,8 @@ class MqttConnack: MqttMessage {
         NO_AUTH = 5,
     }
 
-    this() {
-        header = MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2);
+    this(MqttFixedHeader header = MqttFixedHeader(MqttType.CONNACK, false, 0, false, 2)) {
+        this.header = header;
     }
 
     this(Code code) {
@@ -275,6 +275,7 @@ class MqttUnsuback: MqttMessage {
 }
 
 class MqttDisconnect: MqttMessage {
+    this(MqttFixedHeader) {}
     override void handle(MqttServer server, MqttConnection connection) const {
         server.unsubscribe(connection);
         connection.disconnect();
@@ -282,12 +283,14 @@ class MqttDisconnect: MqttMessage {
 }
 
 class MqttPingReq: MqttMessage {
+    this(MqttFixedHeader = MqttFixedHeader()) {}
     override void handle(MqttServer server, MqttConnection connection) const {
         server.ping(connection);
     }
 }
 
 class MqttPingResp: MqttMessage {
+    this(MqttFixedHeader = MqttFixedHeader()) {}
     @property const(ubyte[]) encode() const {
         return [0xd0, 0x00];
     }
