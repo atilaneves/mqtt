@@ -33,11 +33,11 @@ struct MqttFactory {
         case UNSUBACK:
             return cereal.value!MqttUnsuback(fixedHeader);
         case PINGREQ:
-            return new MqttPingReq(fixedHeader);
+            return cereal.value!MqttPingReq(fixedHeader);
         case PINGRESP:
-            return new MqttPingResp(fixedHeader);
+            return cereal.value!MqttPingResp(fixedHeader);
         case DISCONNECT:
-            return new MqttDisconnect(fixedHeader);
+            return cereal.value!MqttDisconnect(fixedHeader);
         default:
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
             return null;
