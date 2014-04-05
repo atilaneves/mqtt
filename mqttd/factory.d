@@ -8,58 +8,40 @@ import std.stdio;
 
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
-        auto cereal = Decerealiser(bytes);
-        auto fixedHeader = cereal.value!MqttFixedHeader;
 
-        if(!headerChecks(fixedHeader, bytes, cereal.bytes.length)) {
+        MqttFixedHeader fixedHeader = void;
+
+        try {
+            fixedHeader = MqttFixedHeader(bytes);
+        } catch(MqttPacketException ex) {
+            stderr.writeln("Error receiving MQTT packet: ", ex.msg);
             return null;
         }
 
-        cereal.reset(); //so the messages created below can re-read the header
-
         switch(fixedHeader.type) with(MqttType) {
         case CONNECT:
-            return cereal.value!MqttConnect(fixedHeader);
+            return fixedHeader.value!MqttConnect;
         case CONNACK:
-            return cereal.value!MqttConnack(fixedHeader);
+            return fixedHeader.value!MqttConnack;
         case PUBLISH:
-            return cereal.value!MqttPublish(fixedHeader);
+            return fixedHeader.value!MqttPublish;
         case SUBSCRIBE:
-            return cereal.value!MqttSubscribe(fixedHeader);
+            return fixedHeader.value!MqttSubscribe;
         case SUBACK:
-            return cereal.value!MqttSuback(fixedHeader);
+            return fixedHeader.value!MqttSuback;
         case UNSUBSCRIBE:
-            return cereal.value!MqttUnsubscribe(fixedHeader);
+            return fixedHeader.value!MqttUnsubscribe;
         case UNSUBACK:
-            return cereal.value!MqttUnsuback(fixedHeader);
+            return fixedHeader.value!MqttUnsuback;
         case PINGREQ:
-            return cereal.value!MqttPingReq(fixedHeader);
+            return fixedHeader.value!MqttPingReq;
         case PINGRESP:
-            return cereal.value!MqttPingResp(fixedHeader);
+            return fixedHeader.value!MqttPingResp;
         case DISCONNECT:
-            return cereal.value!MqttDisconnect(fixedHeader);
+            return fixedHeader.value!MqttDisconnect;
         default:
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
             return null;
         }
-    }
-
-private:
-    static bool headerChecks(in MqttFixedHeader fixedHeader, in ubyte[] bytes, in ulong remainingLength) {
-        if(fixedHeader.remaining < remainingLength) {
-            stderr.writeln("Wrong MQTT remaining size ", cast(int)fixedHeader.remaining,
-                           ". Real remaining size: ", remainingLength);
-        }
-
-        const mqttSize = fixedHeader.remaining + MqttFixedHeader.SIZE;
-        if(mqttSize != bytes.length) {
-            stderr.writeln("Malformed packet. Actual size: ", bytes.length,
-                           ". Advertised size: ", mqttSize, " (r ", fixedHeader.remaining ,")");
-            stderr.writeln("Packet:");
-            stderr.writefln("%(0x%x %)", bytes);
-            return false;
-        }
-
-        return true;
     }
 }
