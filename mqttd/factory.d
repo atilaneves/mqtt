@@ -10,17 +10,8 @@ struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
         auto cereal = Decerealiser(bytes);
         auto fixedHeader = cereal.value!MqttFixedHeader;
-        if(fixedHeader.remaining < cereal.bytes.length) {
-            stderr.writeln("Wrong MQTT remaining size ", cast(int)fixedHeader.remaining,
-                           ". Real remaining size: ", cereal.bytes.length);
-        }
 
-        const mqttSize = fixedHeader.remaining + MqttFixedHeader.SIZE;
-        if(mqttSize != bytes.length) {
-            stderr.writeln("Malformed packet. Actual size: ", bytes.length,
-                           ". Advertised size: ", mqttSize, " (r ", fixedHeader.remaining ,")");
-            stderr.writeln("Packet:");
-            stderr.writefln("%(0x%x %)", bytes);
+        if(!headerChecks(fixedHeader, bytes, cereal.bytes.length)) {
             return null;
         }
 
@@ -54,5 +45,24 @@ struct MqttFactory {
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
             return null;
         }
+    }
+
+private:
+    static bool headerChecks(in MqttFixedHeader fixedHeader, in ubyte[] bytes, in ulong remainingLength) {
+        if(fixedHeader.remaining < remainingLength) {
+            stderr.writeln("Wrong MQTT remaining size ", cast(int)fixedHeader.remaining,
+                           ". Real remaining size: ", remainingLength);
+        }
+
+        const mqttSize = fixedHeader.remaining + MqttFixedHeader.SIZE;
+        if(mqttSize != bytes.length) {
+            stderr.writeln("Malformed packet. Actual size: ", bytes.length,
+                           ". Advertised size: ", mqttSize, " (r ", fixedHeader.remaining ,")");
+            stderr.writeln("Packet:");
+            stderr.writefln("%(0x%x %)", bytes);
+            return false;
+        }
+
+        return true;
     }
 }
