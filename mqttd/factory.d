@@ -9,36 +9,36 @@ import std.stdio;
 struct MqttFactory {
     static MqttMessage create(in ubyte[] bytes) {
 
-        MqttFixedHeader fixedHeader = void;
+        auto cereal = Decerealiser(bytes);
+        auto fixedHeader = cereal.value!MqttFixedHeader;
 
-        try {
-            fixedHeader = MqttFixedHeader(bytes);
-        } catch(MqttPacketException ex) {
-            stderr.writeln("Error receiving MQTT packet: ", ex.msg);
+        if(!fixedHeader.check(bytes, cereal.bytes.length)) {
             return null;
         }
 
+        cereal.reset(); //so that the created MqttMessage can re-read the header
+
         switch(fixedHeader.type) with(MqttType) {
         case CONNECT:
-            return fixedHeader.value!MqttConnect;
+            return cereal.value!MqttConnect(fixedHeader);
         case CONNACK:
-            return fixedHeader.value!MqttConnack;
+            return cereal.value!MqttConnack(fixedHeader);
         case PUBLISH:
-            return fixedHeader.value!MqttPublish;
+            return cereal.value!MqttPublish(fixedHeader);
         case SUBSCRIBE:
-            return fixedHeader.value!MqttSubscribe;
+            return cereal.value!MqttSubscribe(fixedHeader);
         case SUBACK:
-            return fixedHeader.value!MqttSuback;
+            return cereal.value!MqttSuback(fixedHeader);
         case UNSUBSCRIBE:
-            return fixedHeader.value!MqttUnsubscribe;
+            return cereal.value!MqttUnsubscribe(fixedHeader);
         case UNSUBACK:
-            return fixedHeader.value!MqttUnsuback;
+            return cereal.value!MqttUnsuback(fixedHeader);
         case PINGREQ:
-            return fixedHeader.value!MqttPingReq;
+            return cereal.value!MqttPingReq(fixedHeader);
         case PINGRESP:
-            return fixedHeader.value!MqttPingResp;
+            return cereal.value!MqttPingResp(fixedHeader);
         case DISCONNECT:
-            return fixedHeader.value!MqttDisconnect;
+            return cereal.value!MqttDisconnect(fixedHeader);
         default:
             stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
             return null;

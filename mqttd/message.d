@@ -27,11 +27,6 @@ enum MqttType {
     RESERVED2   = 15
 }
 
-class MqttPacketException: Exception {
-    this(string msg) {
-        super(msg);
-    }
-}
 
 struct MqttFixedHeader {
 public:
@@ -42,38 +37,23 @@ public:
     @Bits!2 ubyte qos;
     @Bits!1 bool retain;
     @NoCereal uint remaining;
-    @NoCereal Decerealiser cereal;
 
-    this(MqttType type, bool dup, ubyte qos, bool retain, uint remaining) {
-        this.type = type;
-        this.dup = dup;
-        this.qos = qos;
-        this.retain = retain;
-        this.remaining = remaining;
-    }
-
-    this(in ubyte[] bytes) {
-        cereal = Decerealiser(bytes);
-        cereal.grain(this);
-
-        if(remaining < cereal.bytes.length) {
+    bool check(in ubyte[] bytes, in ulong cerealBytesLength) const {
+        if(remaining < cerealBytesLength) {
             stderr.writeln("Wrong MQTT remaining size ", cast(int)remaining,
-                           ". Real remaining size: ", cereal.bytes.length);
+                           ". Real remaining size: ", cerealBytesLength);
         }
 
         const mqttSize = remaining + SIZE;
         if(mqttSize != bytes.length) {
-            import std.conv;
-            throw new MqttPacketException(text("Malformed packet. Actual size: ", bytes.length,
-                                               ". Advertised size: ", mqttSize, " (r ", remaining ,")",
-                                               "\nPacket:\n", "%(0x%x %)", bytes));
+            stderr.writeln("Malformed packet. Actual size: ", bytes.length,
+                    ". Advertised size: ", mqttSize, " (r ", remaining ,")");
+            stderr.writeln("Packet:\n", "%(0x%x %)", bytes);
+
+            return false;
         }
 
-        cereal.reset(); //so that the created MqttMessage can re-read the header
-    }
-
-    @property @safe T value(T)() if(is(T: MqttMessage)) {
-        return cereal.value!T(this);
+        return true;
     }
 
     void postBlit(Cereal)(ref Cereal cereal) if(isCerealiser!Cereal) {
