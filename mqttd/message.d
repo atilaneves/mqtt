@@ -5,6 +5,8 @@ import mqttd.server;
 import cerealed;
 import std.stdio;
 import std.algorithm;
+import std.stdio;
+
 
 enum MqttType {
     RESERVED1   = 0,
@@ -206,6 +208,9 @@ public:
 class MqttSubscribe: MqttMessage {
 public:
     this(MqttFixedHeader header) {
+        if(header.qos != 1) {
+            stderr.writeln("SUBSCRIBE message with qos ", header.qos, ", should be 1");
+        }
         this.header = header;
     }
 

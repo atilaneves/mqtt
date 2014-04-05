@@ -25,9 +25,6 @@ struct MqttFactory {
         case PUBLISH:
             return cereal.value!MqttPublish(fixedHeader);
         case SUBSCRIBE:
-            if(fixedHeader.qos != 1) {
-                stderr.writeln("SUBSCRIBE message with qos ", fixedHeader.qos, ", should be 1");
-            }
             return cereal.value!MqttSubscribe(fixedHeader);
         case SUBACK:
             return cereal.value!MqttSuback(fixedHeader);
