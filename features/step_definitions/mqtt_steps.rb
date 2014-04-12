@@ -1,4 +1,5 @@
 require 'socket'
+require 'timeout'
 
 After do
   @socket.close
@@ -8,8 +9,15 @@ end
 
 Given(/^I have established a TCP connection to the broker on port (\d+)$/) do |port|
   @mqtt = IO.popen("./mqtt")
-  sleep(0.1)
-  @socket = TCPSocket.new('localhost', port)
+  Timeout.timeout(1) do
+    while @socket.nil?
+      begin
+        @socket = TCPSocket.new('localhost', port)
+      rescue Errno::ECONNREFUSED
+        #keep trying until the server is up
+      end
+    end
+  end
 end
 
 When(/^I send a CONNECT MQTT message$/) do
