@@ -71,7 +71,7 @@ Given(/^I have connected to the broker on port (\d+)$/) do |port|
 end
 
 When(/^I subscribe to a topic with msgId (\d+)$/) do |msgId|
-  send_bytes [ 0x8c, 0x13, #fixed header
+  send_bytes [ 0x82, 0x13, #fixed header
                0x00, msgId.to_i, #message ID
                0x00, 0x05, 'f'.ord, 'i'.ord, 'r'.ord, 's'.ord, 't'.ord,
                0x01, #qos
