@@ -16,7 +16,7 @@ def connect_to_broker_tcp(port=1883)
       begin
         @socket = TCPSocket.new('localhost', port)
       rescue Errno::ECONNREFUSED
-        #keep trying until the server is up
+        #keep trying until the server is up or we time out
       end
     end
   end
