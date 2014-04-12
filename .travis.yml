@@ -12,6 +12,7 @@ install:
  - cd dtest
  - dub build
  - cd ..
+ - dub build --build=release
 script:
  - dtest/dtest -u unit-threaded -I cerealed
  - cucumber
