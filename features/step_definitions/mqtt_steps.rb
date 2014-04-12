@@ -22,19 +22,22 @@ def connect_to_broker_tcp(port=1883)
   end
 end
 
-def connect_to_broker_mqtt
-  bytes = [ 0x10, 0x2a, #fixed header
-            0x00, 0x06] + 'MQIsdp'.unpack('C*') + \
-          [ 0x03, #protocol version
-            0xcc, #connection flags 1100111x username, pw, !wr, w(01), w, !c, x
-            0x00, 0x0a, #keepalive of 10
-            0x00, 0x03, 'c'.ord, 'i'.ord, 'd'.ord, #client ID
-            0x00, 0x04, 'w'.ord, 'i'.ord, 'l'.ord, 'l'.ord, #will topic
-            0x00, 0x04, 'w'.ord, 'm'.ord, 's'.ord, 'g'.ord, #will msg
-            0x00, 0x07, 'g'.ord, 'l'.ord, 'i'.ord, 'f'.ord, 't'.ord, 'e'.ord, 'l'.ord, #username
-            0x00, 0x02, 'p'.ord, 'w'.ord, #password
-        ]
+def send_bytes(bytes)
   @socket.sendmsg(bytes.pack("C*"))
+end
+
+def send_mqtt_connect()
+  send_bytes [ 0x10, 0x2a, #fixed header
+               0x00, 0x06] + 'MQIsdp'.unpack('C*') + \
+             [ 0x03, #protocol version
+               0xcc, #connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+               0x00, 0x0a, #keepalive of 10
+               0x00, 0x03, 'c'.ord, 'i'.ord, 'd'.ord, #client ID
+               0x00, 0x04, 'w'.ord, 'i'.ord, 'l'.ord, 'l'.ord, #will topic
+               0x00, 0x04, 'w'.ord, 'm'.ord, 's'.ord, 'g'.ord, #will msg
+               0x00, 0x07, 'g'.ord, 'l'.ord, 'i'.ord, 'f'.ord, 't'.ord, 'e'.ord, 'l'.ord, #username
+               0x00, 0x02, 'p'.ord, 'w'.ord, #password
+             ]
 end
 
 Given(/^I have established a TCP connection to the broker on port (\d+)$/) do |port|
@@ -42,35 +45,41 @@ Given(/^I have established a TCP connection to the broker on port (\d+)$/) do |p
 end
 
 When(/^I send a CONNECT MQTT message$/) do
-  connect_to_broker_mqtt
+  send_mqtt_connect
+end
+
+def assert_recv(bytes)
+  @socket.recv(bytes.length).unpack("C*").should == bytes
+end
+
+def expect_mqtt_connack
+  assert_recv [0x20, 0x2, 0x0, 0x0]
 end
 
 Then(/^I should receive a CONNACK MQTT message$/) do
-  ret = @socket.recv(3).unpack("C*")
-  ret.should == [0x20, 0x2, 0x0]
+  expect_mqtt_connack
 end
 
+def connect_to_broker_mqtt(port)
+  connect_to_broker_tcp(port)
+  send_mqtt_connect
+  expect_mqtt_connack
+end
 
 Given(/^I have connected to the broker on port (\d+)$/) do |port|
-  connect_to_broker_tcp(port)
-  connect_to_broker_mqtt()
-  bytes =  [0x20, 0x2, 0x0, 0x0]
-  ret = @socket.recv(bytes.length).unpack("C*")
-  ret.should == bytes
+  connect_to_broker_mqtt(port)
 end
 
 When(/^I subscribe to a topic with msgId (\d+)$/) do |msgId|
-  bytes = [ 0x8c, 0x13, #fixed header
-            0x00, msgId.to_i, #message ID
-            0x00, 0x05, 'f'.ord, 'i'.ord, 'r'.ord, 's'.ord, 't'.ord,
-            0x01, #qos
-            0x00, 0x06, 's'.ord, 'e'.ord, 'c'.ord, 'o'.ord, 'n'.ord, 'd'.ord,
-            0x02, #qos
-          ]
-  @socket.sendmsg(bytes.pack("C*"))
+  send_bytes [ 0x8c, 0x13, #fixed header
+               0x00, msgId.to_i, #message ID
+               0x00, 0x05, 'f'.ord, 'i'.ord, 'r'.ord, 's'.ord, 't'.ord,
+               0x01, #qos
+               0x00, 0x06, 's'.ord, 'e'.ord, 'c'.ord, 'o'.ord, 'n'.ord, 'd'.ord,
+               0x02, #qos
+             ]
 end
 
 Then(/^I should receive a SUBACK message with qos (\d+) and msgId (\d+)$/) do |arg1, arg2|
-  bytes = [0x90, 4, 0, 42, 1, 2]
-  @socket.recv(bytes.length).unpack("C*").should == bytes
+  assert_recv [0x90, 4, 0, 42, 1, 2]
 end
