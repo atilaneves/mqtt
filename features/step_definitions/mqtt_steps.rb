@@ -2,12 +2,14 @@ require 'socket'
 require 'timeout'
 
 After do
-  @socket.close
-  Process.kill("INT", @mqtt.pid)
-  Process.wait(@mqtt.pid)
+  @socket.nil? or @socket.close
+  if not @mqtt.nil?
+    Process.kill("INT", @mqtt.pid)
+    Process.wait(@mqtt.pid)
+  end
 end
 
-Given(/^I have established a TCP connection to the broker on port (\d+)$/) do |port|
+def connect_to_broker_tcp(port=1883)
   @mqtt = IO.popen("./mqtt")
   Timeout.timeout(1) do
     while @socket.nil?
@@ -20,7 +22,7 @@ Given(/^I have established a TCP connection to the broker on port (\d+)$/) do |p
   end
 end
 
-When(/^I send a CONNECT MQTT message$/) do
+def connect_to_broker_mqtt
   bytes = [ 0x10, 0x2a, #fixed header
             0x00, 0x06] + 'MQIsdp'.unpack('C*') + \
           [ 0x03, #protocol version
@@ -35,7 +37,40 @@ When(/^I send a CONNECT MQTT message$/) do
   @socket.sendmsg(bytes.pack("C*"))
 end
 
+Given(/^I have established a TCP connection to the broker on port (\d+)$/) do |port|
+  connect_to_broker_tcp(port)
+end
+
+When(/^I send a CONNECT MQTT message$/) do
+  connect_to_broker_mqtt
+end
+
 Then(/^I should receive a CONNACK MQTT message$/) do
   ret = @socket.recv(3).unpack("C*")
   ret.should == [0x20, 0x2, 0x0]
+end
+
+
+Given(/^I have connected to the broker on port (\d+)$/) do |port|
+  connect_to_broker_tcp(port)
+  connect_to_broker_mqtt()
+  bytes =  [0x20, 0x2, 0x0, 0x0]
+  ret = @socket.recv(bytes.length).unpack("C*")
+  ret.should == bytes
+end
+
+When(/^I subscribe to a topic with msgId (\d+)$/) do |msgId|
+  bytes = [ 0x8c, 0x13, #fixed header
+            0x00, msgId.to_i, #message ID
+            0x00, 0x05, 'f'.ord, 'i'.ord, 'r'.ord, 's'.ord, 't'.ord,
+            0x01, #qos
+            0x00, 0x06, 's'.ord, 'e'.ord, 'c'.ord, 'o'.ord, 'n'.ord, 'd'.ord,
+            0x02, #qos
+          ]
+  @socket.sendmsg(bytes.pack("C*"))
+end
+
+Then(/^I should receive a SUBACK message with qos (\d+) and msgId (\d+)$/) do |arg1, arg2|
+  bytes = [0x90, 4, 0, 42, 1, 2]
+  @socket.recv(bytes.length).unpack("C*").should == bytes
 end
