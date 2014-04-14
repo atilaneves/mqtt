@@ -1,5 +1,7 @@
 Feature: Subscribe
-  A client must be able to subscribe to a topic.
+  As an MQTT client,
+  I want to be able to subscribe to a topic
+  So that I can receive messages on that topic
 
   Scenario: Subscribe to a topic
     Given I have connected to the broker on port 1883
