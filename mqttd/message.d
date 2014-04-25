@@ -111,8 +111,8 @@ public:
     }
 
     void postBlit(Cereal)(ref Cereal cereal) {
-        if(hasWill) cereal.grain(willTopic);
-        if(hasWill) cereal.grain(willMessage);
+        if(hasWill)     cereal.grain(willTopic);
+        if(hasWill)     cereal.grain(willMessage);
         if(hasUserName) cereal.grain(userName);
         if(hasPassword) cereal.grain(password);
     }

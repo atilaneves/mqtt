@@ -14,5 +14,5 @@ install:
  - cd ..
  - dub build --build=release
 script:
- - dtest/dtest -u unit-threaded -I cerealed
+ - dtest/dtest -u unit-threaded/source -I cerealed
  - cucumber
