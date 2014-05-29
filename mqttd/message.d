@@ -68,7 +68,7 @@ public:
 
 private:
 
-    uint getRemainingSize(Cereal)(ref Cereal cereal) {
+    uint getRemainingSize(Cereal)(ref Cereal cereal) if(isDecerealiser!Cereal) {
         //algorithm straight from the MQTT spec
         int multiplier = 1;
         uint value = 0;
@@ -82,21 +82,32 @@ private:
         return value;
     }
 
-    void setRemainingSize(Cereal)(ref Cereal cereal) const {
-        //algorithm straight from the MQTT spec
-        ubyte[] digits;
+    void setRemainingSize(Cereal)(ref Cereal cereal) const if(isCerealiser!Cereal) {
+        remaining <= 127 ? setRemainingSizeOneByte(cereal) : setRemainingSizeMultiByte(cereal);
+    }
+
+    void setRemainingSizeOneByte(Cereal)(ref Cereal cereal) const if(isCerealiser!Cereal) {
+        cereal ~= cast(ubyte)remaining;
+    }
+
+    void setRemainingSizeMultiByte(Cereal)(ref Cereal cereal) const if(isCerealiser!Cereal) {
+        //algorithm straight from the MQTT spec, modified for speed optimisation
+        enum maxDigits = 4;
+        static ubyte[maxDigits] digitStore; //optimisation for speed, no heap allocations
+        ubyte[] digits = digitStore[0..0];
         uint x = remaining;
         do {
             ubyte digit = x % 128;
             x /= 128;
             if(x > 0) {
-                digit = digit | 0x80;
+                digit |= 0x80;
             }
             digits ~= digit;
         } while(x > 0);
 
         foreach(b; digits) cereal.grain(b);
     }
+
 }
 
 class MqttMessage {

@@ -43,7 +43,8 @@ struct MqttFactory {
 
 private:
 
-    static MqttMessage function(MqttFixedHeader, Decerealiser)[MqttType] _msgCreators;
+    alias MessageCreator = MqttMessage function(MqttFixedHeader, Decerealiser);
+    static MessageCreator[MqttType] _msgCreators;
 
     static void registerType(T)(MqttType type) {
         _msgCreators[type] = (header, cereal) {
