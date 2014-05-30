@@ -197,11 +197,17 @@ public:
 
         this.header = MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining);
         this.topic = topic;
-        this.payload = payload.dup;
+        //only safe if we never change it
+        this.payload = cast(ubyte[])payload;
         this.msgId = msgId;
+        this.cantDecerealise = true; //because of the cast
     }
 
     void postBlit(Cereal)(ref Cereal cereal) {
+        static if(isDecerealiser!Cereal) {
+            assert(!cantDecerealise, "Cannot decerealise if constructed from payload");
+        }
+
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
         if(header.qos) {
             static if(Cereal.type == CerealType.ReadBytes) {
@@ -231,6 +237,7 @@ public:
     string topic;
     @NoCereal ubyte[] payload;
     @NoCereal ushort msgId;
+    @NoCereal bool cantDecerealise;
 }
 
 
