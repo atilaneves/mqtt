@@ -198,7 +198,7 @@ private struct SubscriptionTree {
 private:
 
     bool _useCache;
-    Subscription[] _cache[string];
+    Subscription[][string] _cache;
     Node*[string] _nodes;
 }
 

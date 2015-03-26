@@ -8,6 +8,7 @@
     "sourcePaths": ["mqttd"],
     "importPaths": ["."],
     "targetType": "executable",
+    "versions": ["VibeDefaultMain"],
     "dependencies": {
         "vibe-d": "~master",
         "cerealed": "~master"
