@@ -8,9 +8,25 @@
     "sourcePaths": ["mqttd"],
     "importPaths": ["."],
     "targetType": "executable",
-    "versions": ["VibeDefaultMain"],
     "dependencies": {
         "vibe-d": "~master",
         "cerealed": "~master"
-    }
+    },
+    "configurations": [
+        {
+            "name": "executable",
+            "versions": ["VibeDefaultMain"]
+        },
+        {
+            "name": "unittest",
+            "targetType": "executable",
+            "sourcePaths": ["tests"],
+            "versions": ["VibeCustomMain"],
+            "mainSourceFile": "tests/ut.d",
+            "dependencies": {
+                "unit-threaded": "~>0.5.3"
+            }
+        }
+    ]
+
 }

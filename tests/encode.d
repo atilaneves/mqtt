@@ -1,6 +1,6 @@
 module tests.encode;
 
-import unit_threaded.check;
+import unit_threaded;
 import cerealed.cerealiser;
 import cerealed.decerealiser;
 import mqttd.message;
@@ -9,17 +9,17 @@ import mqttd.factory;
 void testCerealiseFixedHeader() {
     auto cereal = Cerealiser();
     cereal ~= MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
-    checkEqual(cereal.bytes, [0x3c, 0x5]);
+    shouldEqual(cereal.bytes, [0x3c, 0x5]);
 }
 
 void testDecerealiseMqttHeader() {
      auto cereal = Decerealiser([0x3c, 0x5]);
      const header = cereal.value!MqttFixedHeader;
-     checkEqual(header.type, MqttType.PUBLISH);
-     checkEqual(header.dup, true);
-     checkEqual(header.qos, 2);
-     checkEqual(header.retain, false);
-     checkEqual(header.remaining, 5);
+     shouldEqual(header.type, MqttType.PUBLISH);
+     shouldEqual(header.dup, true);
+     shouldEqual(header.qos, 2);
+     shouldEqual(header.retain, false);
+     shouldEqual(header.remaining, 5);
 }
 
 private auto encode(in MqttFixedHeader header) {
@@ -35,35 +35,35 @@ private auto headerFromBytes(in ubyte[] bytes) {
 
 void testEncodeFixedHeader() {
     const msg = MqttFixedHeader(MqttType.PUBLISH, true, 2, false, 5);
-    checkEqual(msg.encode(), [0x3c, 0x5]);
+    shouldEqual(msg.encode(), [0x3c, 0x5]);
 }
 
 void testDecodeFixedHeader() {
     const msg = headerFromBytes([0x3c, 0x5, 0, 0, 0, 0, 0]);
-    checkEqual(msg.type, MqttType.PUBLISH);
-    checkEqual(msg.dup, true);
-    checkEqual(msg.qos, 2);
-    checkEqual(msg.retain, false);
-    checkEqual(msg.remaining, 5);
+    shouldEqual(msg.type, MqttType.PUBLISH);
+    shouldEqual(msg.dup, true);
+    shouldEqual(msg.qos, 2);
+    shouldEqual(msg.retain, false);
+    shouldEqual(msg.remaining, 5);
 }
 
 void testEncodeBigRemaining() {
     {
         const msg = MqttFixedHeader(MqttType.SUBSCRIBE, false, 1, true, 261);
-        checkEqual(msg.type, MqttType.SUBSCRIBE);
-        checkEqual(msg.dup, false);
-        checkEqual(msg.qos, 1);
-        checkEqual(msg.retain, true);
-        checkEqual(msg.remaining, 261);
-        checkEqual(msg.encode(), [0x83, 0x85, 0x02]);
+        shouldEqual(msg.type, MqttType.SUBSCRIBE);
+        shouldEqual(msg.dup, false);
+        shouldEqual(msg.qos, 1);
+        shouldEqual(msg.retain, true);
+        shouldEqual(msg.remaining, 261);
+        shouldEqual(msg.encode(), [0x83, 0x85, 0x02]);
     }
     {
         const msg = MqttFixedHeader(MqttType.SUBSCRIBE, false, 1, true, 321);
-        checkEqual(msg.encode(), [0x83, 0xc1, 0x02]);
+        shouldEqual(msg.encode(), [0x83, 0xc1, 0x02]);
     }
     {
         const msg = MqttFixedHeader(MqttType.SUBSCRIBE, false, 1, true, 2_097_157);
-        checkEqual(msg.encode(), [0x83, 0x85, 0x80, 0x80, 0x01]);
+        shouldEqual(msg.encode(), [0x83, 0x85, 0x80, 0x80, 0x01]);
     }
 }
 
@@ -72,19 +72,19 @@ void testDecodeBigRemaining() {
         ubyte[] bytes = [0x12, 0xc1, 0x02];
         bytes.length += 321;
         const hdr = headerFromBytes(bytes);
-        checkEqual(hdr.remaining, 321);
+        shouldEqual(hdr.remaining, 321);
     }
     {
         ubyte[] bytes = [0x12, 0x83, 0x02];
         bytes.length += 259;
         const hdr = headerFromBytes(bytes);
-        checkEqual(hdr.remaining, 259);
+        shouldEqual(hdr.remaining, 259);
     }
     {
         ubyte[] bytes = [0x12, 0x85, 0x80, 0x80, 0x01];
         bytes.length += 2_097_157;
         const hdr = headerFromBytes(bytes);
-        checkEqual(hdr.remaining, 2_097_157);
+        shouldEqual(hdr.remaining, 2_097_157);
     }
 }
 
@@ -101,31 +101,31 @@ void testConnectMsg() {
                       0x00, 0x02, 'p', 'w', //password
         ];
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
 
     const connect = cast(MqttConnect)msg;
-    checkNotNull(connect);
+    shouldNotBeNull(connect);
 
-    checkEqual(connect.protoName, "MQIsdp");
-    checkEqual(connect.protoVersion, 3);
-    checkTrue(connect.hasUserName);
-    checkTrue(connect.hasPassword);
-    checkFalse(connect.hasWillRetain);
-    checkEqual(connect.willQos, 1);
-    checkTrue(connect.hasWill);
-    checkFalse(connect.hasClear);
-    checkEqual(connect.keepAlive, 10);
-    checkEqual(connect.clientId, "cid");
-    checkEqual(connect.willTopic, "will");
-    checkEqual(connect.willMessage, "wmsg");
-    checkEqual(connect.userName, "gliftel");
-    checkEqual(connect.password, "pw");
+    shouldEqual(connect.protoName, "MQIsdp");
+    shouldEqual(connect.protoVersion, 3);
+    shouldBeTrue(connect.hasUserName);
+    shouldBeTrue(connect.hasPassword);
+    shouldBeFalse(connect.hasWillRetain);
+    shouldEqual(connect.willQos, 1);
+    shouldBeTrue(connect.hasWill);
+    shouldBeFalse(connect.hasClear);
+    shouldEqual(connect.keepAlive, 10);
+    shouldEqual(connect.clientId, "cid");
+    shouldEqual(connect.willTopic, "will");
+    shouldEqual(connect.willMessage, "wmsg");
+    shouldEqual(connect.userName, "gliftel");
+    shouldEqual(connect.password, "pw");
 }
 
 void testConnackMsg() {
     auto cereal = Cerealiser();
     cereal ~= new MqttConnack(MqttConnack.Code.SERVER_UNAVAILABLE);
-    checkEqual(cereal.bytes, [0x20, 0x2, 0x0, 0x3]);
+    shouldEqual(cereal.bytes, [0x20, 0x2, 0x0, 0x3]);
 }
 
 void testDecodePublishWithMsgId() {
@@ -137,14 +137,14 @@ void testDecodePublishWithMsgId() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
 
     const publish = cast(MqttPublish)msg;
-    checkNotNull(publish);
+    shouldNotBeNull(publish);
 
-    checkEqual(publish.topic, "top");
-    checkEqual(publish.payload, "borg");
-    checkEqual(publish.msgId, 33);
+    shouldEqual(publish.topic, "top");
+    shouldEqual(publish.payload, "borg");
+    shouldEqual(publish.msgId, 33);
 }
 
 void testDecodePublishWithNoMsgId() {
@@ -153,13 +153,13 @@ void testDecodePublishWithNoMsgId() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
 
     const publish = cast(MqttPublish)msg;
-    checkNotNull(publish);
+    shouldNotBeNull(publish);
 
-    checkEqual(publish.topic, "tup");
-    checkEqual(publish.msgId, 0); //no message id
+    shouldEqual(publish.topic, "tup");
+    shouldEqual(publish.msgId, 0); //no message id
 }
 
 void testDecodePublishWithBadSize() {
@@ -169,7 +169,7 @@ void testDecodePublishWithBadSize() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNull(msg);
+    shouldBeNull(msg);
 }
 
 private auto encodeMsg(T)(T msg) {
@@ -180,7 +180,7 @@ private auto encodeMsg(T)(T msg) {
 
 
 void testEncodePublish() {
-    checkEqual((new MqttPublish(false, 2, true, "foo", cast(ubyte[])"info", 12)).encodeMsg(),
+    shouldEqual((new MqttPublish(false, 2, true, "foo", cast(ubyte[])"info", 12)).encodeMsg(),
                [0x35, 0x0b, //header
                 0x00, 0x03, 'f', 'o', 'o', //topic
                 0x00, 0x0c, //msgId
@@ -188,14 +188,14 @@ void testEncodePublish() {
                ]
               );
 
-    checkEqual((new MqttPublish(true, 0, false, "bars", cast(ubyte[])"boo")).encodeMsg(),
+    shouldEqual((new MqttPublish(true, 0, false, "bars", cast(ubyte[])"boo")).encodeMsg(),
                [0x38, 0x09, //header
                 0x00, 0x04, 'b', 'a', 'r', 's',//topic
                 'b', 'o', 'o',
                ]
         );
 
-    checkEqual((new MqttPublish("topic", cast(ubyte[])"payload")).encodeMsg(),
+    shouldEqual((new MqttPublish("topic", cast(ubyte[])"payload")).encodeMsg(),
                [0x30, 0x0e, //header
                 0x00, 0x05, 't', 'o', 'p', 'i', 'c',
                 'p', 'a', 'y', 'l', 'o', 'a', 'd']);
@@ -212,18 +212,18 @@ void testSubscribe() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
 
     const subscribe = cast(MqttSubscribe)msg;
-    checkNotNull(subscribe);
+    shouldNotBeNull(subscribe);
 
-    checkEqual(subscribe.msgId, 33);
-    checkEqual(subscribe.topics,
+    shouldEqual(subscribe.msgId, 33);
+    shouldEqual(subscribe.topics,
                [MqttSubscribe.Topic("first", 1), MqttSubscribe.Topic("second", 2)]);
 }
 
 void testSuback() {
-    checkEqual((new MqttSuback(12, [1, 2, 0, 2])).encodeMsg(),
+    shouldEqual((new MqttSuback(12, [1, 2, 0, 2])).encodeMsg(),
                 [0x90, 0x06, //fixed header
                  0x00, 0x0c, //msgId
                  0x01, 0x02, 0x00, 0x02, //qos
@@ -233,11 +233,11 @@ void testSuback() {
 void testPingReq() {
     ubyte[] bytes = [ 0xc0, 0x00 ];
     const pingReq = MqttFactory.create(bytes);
-    checkNotNull(pingReq);
+    shouldNotBeNull(pingReq);
 }
 
 void testPingResp() {
-    checkEqual((new MqttPingResp()).encode(),
+    shouldEqual((new MqttPingResp()).encode(),
                [0xd0, 0x00]);
 }
 
@@ -250,18 +250,18 @@ void testUnsubscribe() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
 
     const unsubscribe = cast(MqttUnsubscribe)msg;
-    checkNotNull(unsubscribe);
+    shouldNotBeNull(unsubscribe);
 
-    checkEqual(unsubscribe.msgId, 42);
-    checkEqual(unsubscribe.topics, ["first", "second"]);
+    shouldEqual(unsubscribe.msgId, 42);
+    shouldEqual(unsubscribe.topics, ["first", "second"]);
 }
 
 
 void testUnsuback() {
-    checkEqual((new MqttUnsuback(13)).encodeMsg(),
+    shouldEqual((new MqttUnsuback(13)).encodeMsg(),
                [0xb0, 0x02, //fixed header
                 0x00, 0x0d ]); //msgId
 }

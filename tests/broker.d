@@ -1,7 +1,6 @@
 module tests.broker;
 
-import unit_threaded.check;
-import unit_threaded.io;
+import unit_threaded;
 import mqttd.broker;
 
 
@@ -17,17 +16,17 @@ void testSubscribe() {
 
     auto subscriber = new TestMqttSubscriber();
     broker.publish("topics/foo", "my foo is foo");
-    checkEqual(subscriber.messages, []);
+    shouldEqual(subscriber.messages, []);
 
     broker.subscribe(subscriber, ["topics/foo"]);
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
-    checkEqual(subscriber.messages, ["my foo is foo"]);
+    shouldEqual(subscriber.messages, ["my foo is foo"]);
 
     broker.subscribe(subscriber, ["topics/bar"]);
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
-    checkEqual(subscriber.messages, ["my foo is foo", "my foo is foo", "my bar is bar"]);
+    shouldEqual(subscriber.messages, ["my foo is foo", "my foo is foo", "my bar is bar"]);
 }
 
 
@@ -38,12 +37,12 @@ void testUnsubscribeAll() {
     broker.subscribe(subscriber, ["topics/foo"]);
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
-    checkEqual(subscriber.messages, ["my foo is foo"]);
+    shouldEqual(subscriber.messages, ["my foo is foo"]);
 
     broker.unsubscribe(subscriber);
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
-    checkEqual(subscriber.messages, ["my foo is foo"]); //shouldn't have changed
+    shouldEqual(subscriber.messages, ["my foo is foo"]); //shouldn't have changed
 }
 
 
@@ -55,13 +54,13 @@ void testUnsubscribeOne() {
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
     broker.publish("topics/baz", "my baz is baz");
-    checkEqual(subscriber.messages, ["my foo is foo", "my bar is bar"]);
+    shouldEqual(subscriber.messages, ["my foo is foo", "my bar is bar"]);
 
     broker.unsubscribe(subscriber, ["topics/foo"]);
     broker.publish("topics/foo", "my foo is foo");
     broker.publish("topics/bar", "my bar is bar");
     broker.publish("topics/baz", "my baz is baz");
-    checkEqual(subscriber.messages, ["my foo is foo", "my bar is bar", "my bar is bar"]);
+    shouldEqual(subscriber.messages, ["my foo is foo", "my bar is bar", "my bar is bar"]);
 }
 
 
@@ -74,7 +73,7 @@ private void checkMatches(in string pubTopic, in string subTopic, bool matches) 
     const expected = matches ? ["payload"] : [];
     writelnUt("checkMatches, subTopic is ", subTopic, " pubTopic is ", pubTopic,
               ", matches is ", matches);
-    checkEqual(subscriber.messages, expected);
+    shouldEqual(subscriber.messages, expected);
 }
 
 
@@ -104,15 +103,15 @@ void testSubscribeWithWildCards() {
     broker.subscribe(subscriber1, ["topics/foo/+"]);
     broker.publish("topics/foo/bar", "3");
     broker.publish("topics/bar/baz/boo", "4"); //shouldn't get this one
-    checkEqual(subscriber1.messages, ["3"]);
+    shouldEqual(subscriber1.messages, ["3"]);
 
     auto subscriber2 = new TestMqttSubscriber();
     broker.subscribe(subscriber2, ["topics/foo/#"]);
     broker.publish("topics/foo/bar", "3");
     broker.publish("topics/bar/baz/boo", "4");
 
-    checkEqual(subscriber1.messages, ["3", "3"]);
-    checkEqual(subscriber2.messages, ["3"]);
+    shouldEqual(subscriber1.messages, ["3", "3"]);
+    shouldEqual(subscriber2.messages, ["3"]);
 
     auto subscriber3 = new TestMqttSubscriber();
     broker.subscribe(subscriber3, ["topics/+/bar"]);
@@ -125,8 +124,8 @@ void testSubscribeWithWildCards() {
     broker.publish("topics/foo/bar/zoo", "6");
     broker.publish("topics/bbobobobo/bar", "7");
 
-    checkEqual(subscriber1.messages, ["3", "3", "3"]);
-    checkEqual(subscriber2.messages, ["3", "3", "6"]);
-    checkEqual(subscriber3.messages, ["3", "7"]);
-    checkEqual(subscriber4.messages, ["3", "4", "5", "6", "7"]);
+    shouldEqual(subscriber1.messages, ["3", "3", "3"]);
+    shouldEqual(subscriber2.messages, ["3", "3", "6"]);
+    shouldEqual(subscriber3.messages, ["3", "7"]);
+    shouldEqual(subscriber4.messages, ["3", "4", "5", "6", "7"]);
 }

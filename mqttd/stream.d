@@ -96,7 +96,7 @@ private:
             copy(_bytes, _buffer);
             _bytesStart = 0;
             _bytesRead = _bytes.length;
-            _bytes = _buffer[0.._bytesRead];
+            _bytes = _buffer[_bytesStart .. _bytesRead];
         }
     }
 

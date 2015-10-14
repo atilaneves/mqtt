@@ -1,7 +1,6 @@
 module tests.server;
 
-import unit_threaded.check;
-import unit_threaded.io;
+import unit_threaded;
 import mqttd.server;
 import mqttd.message;
 import mqttd.factory;
@@ -52,8 +51,8 @@ void testConnect() {
     auto connection = new TestMqttConnection(bytes);
     server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
-    checkNotNull(connack);
-    checkEqual(connack.code, MqttConnack.Code.ACCEPTED);
+    shouldNotBeNull(connack);
+    shouldEqual(connack.code, MqttConnack.Code.ACCEPTED);
 }
 
 
@@ -75,8 +74,8 @@ void testConnectBigId() {
     auto connection = new TestMqttConnection(bytes);
     server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
-    checkNotNull(connack);
-    checkEqual(connack.code, MqttConnack.Code.BAD_ID);
+    shouldNotBeNull(connack);
+    shouldEqual(connack.code, MqttConnack.Code.BAD_ID);
 }
 
 void testConnectSmallId() {
@@ -96,8 +95,8 @@ void testConnectSmallId() {
     auto connection = new TestMqttConnection(bytes);
     server.newConnection(connection, connection.connect);
     const connack = cast(MqttConnack)connection.lastMsg;
-    checkNotNull(connack);
-    checkEqual(connack.code, MqttConnack.Code.BAD_ID);
+    shouldNotBeNull(connack);
+    shouldEqual(connack.code, MqttConnack.Code.BAD_ID);
 }
 
 void testSubscribe() {
@@ -118,22 +117,22 @@ void testSubscribe() {
     server.newConnection(connection, connection.connect);
 
     server.publish("foo/bar/baz", "interesting stuff");
-    checkEqual(connection.payloads, []);
+    shouldEqual(connection.payloads, []);
 
     server.subscribe(connection, 42, ["foo/bar/+"]);
     const suback = cast(MqttSuback)connection.lastMsg;
-    checkNotNull(suback);
-    checkEqual(suback.msgId, 42);
-    checkEqual(suback.qos, [0]);
+    shouldNotBeNull(suback);
+    shouldEqual(suback.msgId, 42);
+    shouldEqual(suback.qos, [0]);
 
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff"]);
+    shouldEqual(connection.payloads, ["interesting stuff"]);
 
     server.unsubscribe(connection);
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
+    shouldEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
 }
 
 
@@ -155,7 +154,7 @@ void testSubscribeWithMessage() {
     server.newConnection(connection, connection.connect);
 
     server.publish("foo/bar/baz", "interesting stuff");
-    checkEqual(connection.payloads, []);
+    shouldEqual(connection.payloads, []);
 
     bytes = [ 0x8c, 0x13, //fixed header
               0x00, 0x21, //message ID
@@ -166,12 +165,12 @@ void testSubscribeWithMessage() {
         ];
 
     const msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
     msg.handle(server, connection); //subscribe
     const suback = cast(MqttSuback)connection.lastMsg;
-    checkNotNull(suback);
-    checkEqual(suback.msgId, 33);
-    checkEqual(suback.qos, [1, 2]);
+    shouldNotBeNull(suback);
+    shouldEqual(suback.msgId, 33);
+    shouldEqual(suback.qos, [1, 2]);
 
     bytes = [ 0x3c, 0x0d, //fixed header
               0x00, 0x05, 'f', 'i', 'r', 's', 't',//topic name
@@ -195,7 +194,7 @@ void testSubscribeWithMessage() {
     MqttFactory.create(bytes).handle(server, connection); //publish
 
 
-    checkEqual(connection.payloads, ["borg", "foo"]);
+    shouldEqual(connection.payloads, ["borg", "foo"]);
 }
 
 void testUnsubscribe() {
@@ -217,29 +216,29 @@ void testUnsubscribe() {
 
     server.subscribe(connection, 42, ["foo/bar/+"]);
     const suback = cast(MqttSuback)connection.lastMsg;
-    checkNotNull(suback);
+    shouldNotBeNull(suback);
 
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff"]);
+    shouldEqual(connection.payloads, ["interesting stuff"]);
 
     server.unsubscribe(connection, 2, ["boo"]); //doesn't exist, so no effect
     const unsuback1 = cast(MqttUnsuback)connection.lastMsg;
-    checkNotNull(unsuback1);
-    checkEqual(unsuback1.msgId, 2);
+    shouldNotBeNull(unsuback1);
+    shouldEqual(unsuback1.msgId, 2);
 
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff", "interesting stuff"]);
+    shouldEqual(connection.payloads, ["interesting stuff", "interesting stuff"]);
 
     server.unsubscribe(connection, 3, ["foo/bar/+"]);
     const unsuback2 = cast(MqttUnsuback)connection.lastMsg;
-    checkNotNull(unsuback2);
-    checkEqual(unsuback2.msgId, 3);
+    shouldNotBeNull(unsuback2);
+    shouldEqual(unsuback2.msgId, 3);
 
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff", "interesting stuff"]); //shouldn't have changed
+    shouldEqual(connection.payloads, ["interesting stuff", "interesting stuff"]); //shouldn't have changed
 }
 
 
@@ -263,7 +262,7 @@ void testUnsubscribeHandle() {
 
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff"]);
+    shouldEqual(connection.payloads, ["interesting stuff"]);
 
     bytes = [ 0xa2, 0x0d, //fixed header
               0x00, 0x21, //message ID
@@ -271,15 +270,15 @@ void testUnsubscribeHandle() {
         ];
 
     MqttMessage msg = MqttFactory.create(bytes);
-    checkNotNull(msg);
+    shouldNotBeNull(msg);
     msg.handle(server, connection); //unsubscribe
     const unsuback = cast(MqttUnsuback)connection.lastMsg;
-    checkNotNull(unsuback);
-    checkEqual(unsuback.msgId, 33);
+    shouldNotBeNull(unsuback);
+    shouldEqual(unsuback.msgId, 33);
 
     server.publish("foo/bar/baz", "interesting stuff");
     server.publish("foo/boogagoo", "oh noes!!!");
-    checkEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
+    shouldEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
 }
 
 void testSubscribeWildCard() {
@@ -323,14 +322,14 @@ void testSubscribeWildCard() {
     }
 
     foreach(i; 0..numPairs) {
-        checkEqual(reqs[i].payloads.length, numMessages);
-        foreach(p; reqs[i].payloads) checkEqual(cast(string)p, "pingawing");
-        checkEqual(reps[i].payloads.length, numMessages);
-        foreach(p; reps[i].payloads) checkEqual(cast(string)p, "pongpongpong");
+        shouldEqual(reqs[i].payloads.length, numMessages);
+        foreach(p; reqs[i].payloads) shouldEqual(cast(string)p, "pingawing");
+        shouldEqual(reps[i].payloads.length, numMessages);
+        foreach(p; reps[i].payloads) shouldEqual(cast(string)p, "pongpongpong");
     }
 
     foreach(i, c; wlds) {
-        checkEqual(c.payloads.length, numMessages * 2);
+        shouldEqual(c.payloads.length, numMessages * 2);
     }
 }
 
@@ -354,7 +353,7 @@ void testPing() {
 
     server.ping(connection);
     const pingResp = cast(MqttPingResp)connection.lastMsg;
-    checkNotNull(pingResp);
+    shouldNotBeNull(pingResp);
 }
 
 
@@ -378,5 +377,5 @@ void testPingWithMessage() {
     const msg = MqttFactory.create([0xc0, 0x00]); //ping request
     msg.handle(server, connection);
     const pingResp = cast(MqttPingResp)connection.lastMsg;
-    checkNotNull(pingResp);
+    shouldNotBeNull(pingResp);
 }

@@ -1,6 +1,6 @@
 module tests.stream;
 
-import unit_threaded.check;
+import unit_threaded;
 import mqttd.stream;
 import mqttd.message;
 
@@ -12,14 +12,14 @@ void testMqttInTwoPackets() {
                        'b', 'o', 'r' ]; //1st part of payload
     auto stream = MqttStream(128);
     stream ~= bytes1;
-    checkFalse(stream.hasMessages());
-    checkNull(stream.createMessage());
+    shouldBeFalse(stream.hasMessages());
+    shouldBeNull(stream.createMessage());
 
     ubyte[] bytes2 = [ 'o', 'r', 'o', 'o', 'n']; //2nd part of payload
     stream ~= bytes2;
-    checkTrue(stream.hasMessages());
+    shouldBeTrue(stream.hasMessages());
     const publish = cast(MqttPublish)stream.createMessage();
-    checkNotNull(publish);
+    shouldNotBeNull(publish);
 }
 
 
@@ -30,30 +30,30 @@ void testTwoMqttInThreePackets() {
                        'a', 'b', 'c' ]; //1st part of payload
     auto stream = MqttStream(128);
     stream ~= bytes1;
-    checkFalse(stream.hasMessages());
-    checkNull(stream.createMessage());
-    checkFalse(stream.empty());
+    shouldBeFalse(stream.hasMessages());
+    shouldBeNull(stream.createMessage());
+    shouldBeFalse(stream.empty());
 
     ubyte[] bytes2 = [ 'd', 'e', 'f', 'g', 'h']; //2nd part of payload
     stream ~= bytes2;
-    checkTrue(stream.hasMessages());
+    shouldBeTrue(stream.hasMessages());
     const publish = cast(MqttPublish)stream.createMessage();
-    checkNotNull(publish);
-    checkTrue(stream.empty());
+    shouldNotBeNull(publish);
+    shouldBeTrue(stream.empty());
 
     ubyte[] bytes3 = [0xe0, 0x00];
     stream ~= bytes3;
-    checkFalse(stream.empty());
+    shouldBeFalse(stream.empty());
     const disconnect = cast(MqttDisconnect)stream.createMessage();
-    checkNotNull(disconnect);
-    checkTrue(stream.empty());
+    shouldNotBeNull(disconnect);
+    shouldBeTrue(stream.empty());
 }
 
 
 void testTwoMqttInOnePacket() {
    auto stream = MqttStream(128);
-   checkFalse(stream.hasMessages());
-   checkTrue(stream.empty());
+   shouldBeFalse(stream.hasMessages());
+   shouldBeTrue(stream.empty());
 
    ubyte[] bytes1 = [ 0x3c ]; // half of header
    ubyte[] bytes2 = [ 0x0f, //2nd half fixed header
@@ -63,19 +63,19 @@ void testTwoMqttInOnePacket() {
                      0xe0, 0x00, //header for disconnect
        ];
    stream ~= bytes1;
-   checkFalse(stream.empty());
-   checkFalse(stream.hasMessages());
+   shouldBeFalse(stream.empty());
+   shouldBeFalse(stream.hasMessages());
 
    stream ~= bytes2;
-   checkFalse(stream.empty());
-   checkTrue(stream.hasMessages());
+   shouldBeFalse(stream.empty());
+   shouldBeTrue(stream.hasMessages());
 
    const publish = cast(MqttPublish)stream.createMessage();
-   checkNotNull(publish);
-   checkFalse(stream.empty());
-   checkTrue(stream.hasMessages());
+   shouldNotBeNull(publish);
+   shouldBeFalse(stream.empty());
+   shouldBeTrue(stream.hasMessages());
 
    const disconnect = cast(MqttDisconnect)stream.createMessage();
-   checkNotNull(disconnect);
-   checkTrue(stream.empty());
+   shouldNotBeNull(disconnect);
+   shouldBeTrue(stream.empty());
 }

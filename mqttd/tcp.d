@@ -14,7 +14,7 @@ class MqttTcpConnection: MqttConnection {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
-        enum bufferSize = 1024 * 16;
+        enum bufferSize = 1024 * 8;
         _stream = MqttStream(bufferSize);
     }
 

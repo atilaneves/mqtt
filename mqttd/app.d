@@ -8,9 +8,9 @@ import std.stdio;
 private __gshared MqttServer gServer;
 
 shared static this() {
-    debug {
-        setLogLevel(LogLevel.debugV);
-    }
+    // debug {
+    //     setLogLevel(LogLevel.debugV);
+    // }
     gServer = new MqttServer();
     gServer.useCache = true;
     listenTCP_s(1883, &accept);
