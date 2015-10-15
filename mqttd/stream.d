@@ -21,33 +21,27 @@ struct MqttStream {
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
-        checkRealloc(bytes.length);
-        immutable end = _bytesRead + bytes.length;
-
-        auto buf = _buffer[_bytesRead .. end];
-        copy(bytes, buf);
-
-        _bytes = _buffer[_bytesStart .. end];
-        _bytesRead += bytes.length;
-        updateRemaining();
+        class Input : MqttInput {
+            override void read(ubyte[] buf) {
+                copy(bytes, buf);
+            }
+        }
+        read(new Input, bytes.length);
     }
 
-    auto read(MqttServer server, MqttConnection connection, unsigned size) {
+    auto read(MqttInput input, unsigned size) {
         checkRealloc(size);
         immutable end = _bytesRead + size;
 
-        connection.read(_buffer[_bytesRead .. end]);
+        input.read(_buffer[_bytesRead .. end]);
 
         _bytes = _buffer[_bytesStart .. end];
         _bytesRead += size;
         updateRemaining();
-
-        while(hasMessages()) {
-            createMessage().handle(server, connection);
-        }
     }
 
-    auto read(in ubyte[] bytes) {
+    void handleMessages(MqttServer server, MqttConnection connection) {
+        while(hasMessages()) handleMessage(server, connection);
     }
 
     bool hasMessages() const {
@@ -58,19 +52,17 @@ struct MqttStream {
         return _bytes.length == 0;
     }
 
-    MqttMessage createMessage() {
-        if(!hasMessages()) return null;
+    void handleMessage(MqttServer server, MqttConnection connection) {
+        if(!hasMessages()) return;
 
         const slice = slice();
         _bytesStart += slice.length;
         _bytes = _buffer[_bytesStart .. _bytesRead];
 
-        auto msg = MqttFactory.create(slice);
+        MqttFactory.handleMessage(slice, server, connection);
 
         _remaining = 0; //reset
         updateRemaining();
-
-        return msg;
     }
 
 
@@ -88,17 +80,19 @@ private:
     }
 
     void checkRealloc(unsigned numBytes) {
-        if(!_buffer) {
-            allocate();
-        }
+        if(!_buffer) allocate();
 
         immutable limit = (9 * _buffer.length) / 10;
         if(_bytesRead + numBytes > limit) {
-            copy(_bytes, _buffer);
-            _bytesStart = 0;
-            _bytesRead = _bytes.length;
-            _bytes = _buffer[_bytesStart .. _bytesRead];
+            resetBuffer;
         }
+    }
+
+    void resetBuffer() {
+        copy(_bytes, _buffer);
+        _bytesStart = 0;
+        _bytesRead = _bytes.length;
+        _bytes = _buffer[_bytesStart .. _bytesRead];
     }
 
     void updateRemaining() {

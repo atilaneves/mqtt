@@ -11,17 +11,13 @@ import std.array;
 
 
 class MqttServer {
-    void newConnection(MqttConnection connection, const MqttConnect connect) {
-        if(!connect) {
-            stderr.writeln("Invalid connect message");
-            return;
-        }
+    void newConnection(MqttConnection connection, in MqttConnect connect) {
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
             code = MqttConnack.Code.BAD_ID;
         }
 
-        new MqttConnack(code).cerealise!(b => connection.write(b));
+        MqttConnack(code).cerealise!(b => connection.write(b));
     }
 
     void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
@@ -31,7 +27,7 @@ class MqttServer {
 
     void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = topics.map!(a => a.qos).array;
-        new MqttSuback(msgId, qos).cerealise!(b => connection.write(b));
+        MqttSuback(msgId, qos).cerealise!(b => connection.write(b));
         _broker.subscribe(connection, topics);
     }
 
@@ -40,7 +36,7 @@ class MqttServer {
     }
 
     void unsubscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
-        new MqttUnsuback(msgId).cerealise!(b => connection.write(b));
+        MqttUnsuback(msgId).cerealise!(b => connection.write(b));
         _broker.unsubscribe(connection, topics);
     }
 
@@ -53,7 +49,8 @@ class MqttServer {
     }
 
     void ping(MqttConnection connection) const {
-        connection.write((new MqttPingResp).encode);
+        static MqttPingResp resp;
+        connection.write(resp.encode);
     }
 
     @property void useCache(bool u) {
@@ -66,13 +63,16 @@ private:
     MqttBroker _broker;
 }
 
+interface MqttInput {
+    void read(ubyte[] bytes);
+}
 
-class MqttConnection: MqttSubscriber {
+class MqttConnection: MqttSubscriber, MqttInput {
     override void newMessage(in string topic, in ubyte[] payload) {
-        new MqttPublish(topic, payload).cerealise!(b => write(cast(immutable)b));
+        MqttPublish(topic, payload).cerealise!(b => write(cast(immutable)b));
     }
 
-    void read(ubyte[] bytes) {
+    override void read(ubyte[] bytes) {
     }
     abstract void write(in ubyte[] bytes);
     abstract void disconnect();

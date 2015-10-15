@@ -110,11 +110,8 @@ private:
 
 }
 
-class MqttMessage {
-    void handle(MqttServer server, MqttConnection connection) const {}
-}
 
-class MqttConnect: MqttMessage {
+struct MqttConnect {
 public:
 
     this(MqttFixedHeader header) {
@@ -132,7 +129,7 @@ public:
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
-    override void handle(MqttServer server, MqttConnection connection) const {
+    void handle(MqttServer server, MqttConnection connection) const {
         server.newConnection(connection, this);
     }
 
@@ -154,7 +151,7 @@ public:
     @NoCereal string password;
 }
 
-class MqttConnack: MqttMessage {
+struct MqttConnack {
 
     enum Code: byte {
         ACCEPTED = 0,
@@ -180,7 +177,7 @@ class MqttConnack: MqttMessage {
 }
 
 
-class MqttPublish: MqttMessage {
+struct MqttPublish {
 public:
     this(MqttFixedHeader header) {
         this.header = header;
@@ -206,6 +203,7 @@ public:
     void postBlit(Cereal)(ref Cereal cereal) {
         static if(isDecerealiser!Cereal) {
             assert(!cantDecerealise, "Cannot decerealise if constructed from payload");
+            payload = _payloadBuffer[];
         }
 
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
@@ -223,25 +221,26 @@ public:
             }
         }
 
-        static if(Cereal.type == CerealType.ReadBytes) payload.length = payloadLen;
+        static if(isDecerealiser!Cereal) payload.length = payloadLen;
         foreach(ref b; payload) cereal.grain(b);
     }
 
     mixin assertHasPostBlit!MqttPublish;
 
-    override void handle(MqttServer server, MqttConnection connection) const {
+    void handle(MqttServer server, MqttConnection connection) const {
         server.publish(topic, payload);
     }
 
     MqttFixedHeader header;
     string topic;
     @NoCereal ubyte[] payload;
+    private @NoCereal ubyte[100] _payloadBuffer;
     @NoCereal ushort msgId;
     @NoCereal bool cantDecerealise;
 }
 
 
-class MqttSubscribe: MqttMessage {
+struct MqttSubscribe {
 public:
     this(MqttFixedHeader header) {
         if(header.qos != 1) {
@@ -250,7 +249,7 @@ public:
         this.header = header;
     }
 
-    override void handle(MqttServer server, MqttConnection connection) const {
+    void handle(MqttServer server, MqttConnection connection) const {
         server.subscribe(connection, msgId, topics);
     }
 
@@ -264,7 +263,7 @@ public:
     @RawArray Topic[] topics;
 }
 
-class MqttSuback: MqttMessage {
+struct MqttSuback {
 public:
 
     this(MqttFixedHeader header) {
@@ -282,12 +281,12 @@ public:
     @RawArray ubyte[] qos;
 }
 
-class MqttUnsubscribe: MqttMessage {
+struct MqttUnsubscribe {
     this(MqttFixedHeader header) {
         this.header = header;
     }
 
-    override void handle(MqttServer server, MqttConnection connection) const {
+    void handle(MqttServer server, MqttConnection connection) const {
         server.unsubscribe(connection, msgId, topics);
     }
 
@@ -296,7 +295,7 @@ class MqttUnsubscribe: MqttMessage {
     @RawArray string[] topics;
 }
 
-class MqttUnsuback: MqttMessage {
+struct MqttUnsuback {
     this(in ushort msgId) {
         this.header = MqttFixedHeader(MqttType.UNSUBACK, false, 0, false, 2);
         this.msgId = msgId;
@@ -310,22 +309,22 @@ class MqttUnsuback: MqttMessage {
     ushort msgId;
 }
 
-class MqttDisconnect: MqttMessage {
+struct MqttDisconnect {
     this(MqttFixedHeader) {}
-    override void handle(MqttServer server, MqttConnection connection) const {
+    void handle(MqttServer server, MqttConnection connection) const {
         server.unsubscribe(connection);
         connection.disconnect();
     }
 }
 
-class MqttPingReq: MqttMessage {
+struct MqttPingReq {
     this(MqttFixedHeader = MqttFixedHeader()) {}
-    override void handle(MqttServer server, MqttConnection connection) const {
+    void handle(MqttServer server, MqttConnection connection) const {
         server.ping(connection);
     }
 }
 
-class MqttPingResp: MqttMessage {
+struct MqttPingResp {
     this(MqttFixedHeader = MqttFixedHeader()) {}
     @property const(ubyte[]) encode() const {
         return [0xd0, 0x00];
