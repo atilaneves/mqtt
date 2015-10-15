@@ -41,9 +41,7 @@ struct MqttStream {
     }
 
     void handleMessages(MqttServer server, MqttConnection connection) {
-        while(hasMessages()) {
-            handleMessage(server, connection);
-        }
+        while(hasMessages()) handleMessage(server, connection);
     }
 
     bool hasMessages() const {
@@ -82,17 +80,19 @@ private:
     }
 
     void checkRealloc(unsigned numBytes) {
-        if(!_buffer) {
-            allocate();
-        }
+        if(!_buffer) allocate();
 
         immutable limit = (9 * _buffer.length) / 10;
         if(_bytesRead + numBytes > limit) {
-            copy(_bytes, _buffer);
-            _bytesStart = 0;
-            _bytesRead = _bytes.length;
-            _bytes = _buffer[_bytesStart .. _bytesRead];
+            resetBuffer;
         }
+    }
+
+    void resetBuffer() {
+        copy(_bytes, _buffer);
+        _bytesStart = 0;
+        _bytesRead = _bytes.length;
+        _bytes = _buffer[_bytesStart .. _bytesRead];
     }
 
     void updateRemaining() {
