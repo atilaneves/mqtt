@@ -220,7 +220,7 @@ public:
             }
         }
 
-        static if(Cereal.type == CerealType.ReadBytes) payload.length = payloadLen;
+        static if(isDecerealiser!Cereal) payload.length = payloadLen;
         foreach(ref b; payload) cereal.grain(b);
     }
 

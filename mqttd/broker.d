@@ -5,7 +5,10 @@ import mqttd.message;
 import std.algorithm;
 import std.array;
 import std.typecons;
+import std.range;
 
+
+enum isTopicRange(R) = isForwardRange!R;
 
 interface MqttSubscriber {
     void newMessage(in string topic, in ubyte[] payload);
@@ -39,8 +42,7 @@ public:
     }
 
     void publish(in string topic, in ubyte[] payload) {
-        auto topParts = array(splitter(topic, "/"));
-        publish(topic, topParts, payload);
+        publish(topic, splitter(topic, "/"), payload);
     }
 
     @property void useCache(bool u) {
@@ -51,7 +53,7 @@ private:
 
     SubscriptionTree _subscriptions;
 
-    void publish(in string topic, string[] topParts, in ubyte[] payload) {
+    void publish(R)(in string topic, R topParts, in ubyte[] payload) if(isTopicRange!R) {
         _subscriptions.publish(topic, topParts, payload);
     }
 }
@@ -148,12 +150,12 @@ private struct SubscriptionTree {
             removeNode(parent.parent, parent);
     }
 
-    void publish(in string topic, string[] topParts, in const(ubyte)[] payload) {
+    void publish(R)(in string topic, R topParts, in const(ubyte)[] payload) if(isTopicRange!R) {
         publish(topic, topParts, payload, _nodes);
     }
 
-    void publish(in string topic, string[] topParts, in const(ubyte)[] payload,
-                 Node*[string] nodes) {
+    void publish(R)(in string topic, R topParts, in const(ubyte)[] payload,
+                    Node*[string] nodes) if(isTopicRange!R) {
         //check the cache first
         if(_useCache && topic in _cache) {
             foreach(s; _cache[topic]) s.newMessage(topic, payload);
@@ -161,26 +163,37 @@ private struct SubscriptionTree {
         }
 
         //not in the cache or not using the cache, do it the hard way
-        foreach(part; [topParts[0], "#", "+"]) {
+        foreach(part; [topParts.front, "#", "+"]) {
             if(part in nodes) {
-                if(topParts.length == 1 && "#" in nodes[part].branches) {
+                immutable hasOneElement = hasOneElement(topParts);
+                if(hasOneElement && "#" in nodes[part].branches) {
                     //So that "finance/#" matches finance
-                    publishLeaves(topic, payload, topParts, nodes[part].branches["#"].leaves);
+                    publishLeaves(topic, payload, topParts.front, hasOneElement, nodes[part].branches["#"].leaves);
                 }
-                publishLeaves(topic, payload, topParts, nodes[part].leaves);
-                if(topParts.length > 1) {
-                    publish(topic, topParts[1..$], payload, nodes[part].branches);
+                publishLeaves(topic, payload, topParts.front, hasOneElement, nodes[part].leaves);
+                if(!topParts.empty) {
+                    auto r = topParts.save;
+                    r.popFront;
+                    publish(topic, r, payload, nodes[part].branches);
                 }
             }
         }
     }
 
-    void publishLeaves(in string topic, in const(ubyte)[] payload,
-                       in string[] topParts,
+    private bool hasOneElement(R)(R range) if(isTopicRange!R) {
+        auto r = range.save;
+        r.popFront;
+        return r.empty;
+    }
+
+    void publishLeaves(in string topic,
+                       in const(ubyte)[] payload,
+                       in string topPart,
+                       in bool hasOneElement,
                        Subscription[] subscriptions) {
         foreach(sub; subscriptions) {
-            if(topParts.length == 1 &&
-               equalOrPlus(sub._part, topParts[0])) {
+            if(hasOneElement &&
+               equalOrPlus(sub._part, topPart)) {
                 publishLeaf(sub, topic, payload);
             }
             else if(sub._part == "#") {
