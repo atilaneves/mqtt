@@ -21,21 +21,19 @@ struct MqttStream {
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
-        class Connection : MqttConnection {
+        class Input : MqttInput {
             override void read(ubyte[] buf) {
                 copy(bytes, buf);
             }
-            override void write(in ubyte[] bytes) {}
-            override void disconnect() {}
         }
-        read(new Connection, bytes.length);
+        read(new Input, bytes.length);
     }
 
-    auto read(MqttConnection connection, unsigned size) {
+    auto read(MqttInput input, unsigned size) {
         checkRealloc(size);
         immutable end = _bytesRead + size;
 
-        connection.read(_buffer[_bytesRead .. end]);
+        input.read(_buffer[_bytesRead .. end]);
 
         _bytes = _buffer[_bytesStart .. end];
         _bytesRead += size;
