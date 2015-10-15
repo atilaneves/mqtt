@@ -162,6 +162,8 @@ private struct SubscriptionTree {
             return;
         }
 
+        if(topParts.empty) return;
+
         //not in the cache or not using the cache, do it the hard way
         foreach(part; [topParts.front, "#", "+"]) {
             if(part in nodes) {
