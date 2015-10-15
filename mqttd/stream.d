@@ -23,9 +23,7 @@ struct MqttStream {
     void opOpAssign(string op: "~")(ubyte[] bytes) {
         checkRealloc(bytes.length);
         immutable end = _bytesRead + bytes.length;
-
-        auto buf = _buffer[_bytesRead .. end];
-        copy(bytes, buf);
+        readFromBytes(bytes, end);
 
         _bytes = _buffer[_bytesStart .. end];
         _bytesRead += bytes.length;
@@ -41,7 +39,9 @@ struct MqttStream {
         _bytes = _buffer[_bytesStart .. end];
         _bytesRead += size;
         updateRemaining();
+    }
 
+    void handleMessages(MqttServer server, MqttConnection connection) {
         while(hasMessages()) {
             createMessage().handle(server, connection);
         }
@@ -111,5 +111,10 @@ private:
     const(ubyte[]) slice() const {
         immutable msgSize = _remaining + MqttFixedHeader.SIZE;
         return  _bytes[0..msgSize];
+    }
+
+    void readFromBytes(ubyte[] bytes, in long end) {
+        auto buf = _buffer[_bytesRead .. end];
+        copy(bytes, buf);
     }
 }
