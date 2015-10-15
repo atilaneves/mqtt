@@ -69,6 +69,19 @@ struct MqttStream {
         return msg;
     }
 
+    void handleMessage(MqttServer server, MqttConnection connection) {
+        if(!hasMessages()) return;
+
+        const slice = slice();
+        _bytesStart += slice.length;
+        _bytes = _buffer[_bytesStart .. _bytesRead];
+
+        MqttFactory.handleMessage(slice, server, connection);
+
+        _remaining = 0; //reset
+        updateRemaining();
+    }
+
 
 private:
 

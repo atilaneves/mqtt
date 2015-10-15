@@ -58,38 +58,36 @@ struct MqttFactory {
             return;
         }
 
-        auto msg = _msgCreators[fixedHeader.type](fixedHeader, cereal);
-        msg.handle(server, connection);
         switch(fixedHeader.type) with(MqttType) {
             case CONNECT:
-                handleM!MqttConnect(fixedHeader, cereal, server, connection);
+                handleMessage!MqttConnect(fixedHeader, cereal, server, connection);
                 break;
             case CONNACK:
-                handleM!MqttConnack(fixedHeader, cereal, server, connection);
+                handleMessage!MqttConnack(fixedHeader, cereal, server, connection);
                 break;
             case PUBLISH:
-                handleM!MqttPublish(fixedHeader, cereal, server, connection);
+                handleMessage!MqttPublish(fixedHeader, cereal, server, connection);
                 break;
             case SUBSCRIBE:
-                handleM!MqttSubscribe(fixedHeader, cereal, server, connection);
+                handleMessage!MqttSubscribe(fixedHeader, cereal, server, connection);
                 break;
             case SUBACK:
-                handleM!MqttSuback(fixedHeader, cereal, server, connection);
+                handleMessage!MqttSuback(fixedHeader, cereal, server, connection);
                 break;
             case UNSUBSCRIBE:
-                handleM!MqttUnsubscribe(fixedHeader, cereal, server, connection);
+                handleMessage!MqttUnsubscribe(fixedHeader, cereal, server, connection);
                 break;
             case UNSUBACK:
-                handleM!MqttUnsuback(fixedHeader, cereal, server, connection);
+                handleMessage!MqttUnsuback(fixedHeader, cereal, server, connection);
                 break;
             case PINGREQ:
-                handleM!MqttPingReq(fixedHeader, cereal, server, connection);
+                handleMessage!MqttPingReq(fixedHeader, cereal, server, connection);
                 break;
             case PINGRESP:
-                handleM!MqttPingResp(fixedHeader, cereal, server, connection);
+                handleMessage!MqttPingResp(fixedHeader, cereal, server, connection);
                 break;
             case DISCONNECT:
-                handleM!MqttDisconnect(fixedHeader, cereal, server, connection);
+                handleMessage!MqttDisconnect(fixedHeader, cereal, server, connection);
                 break;
             default:
                 import std.conv;
@@ -110,9 +108,11 @@ private:
         };
     }
 
-    static void handleM(T)(MqttFixedHeader header, Decerealiser cereal,
-                                   MqttServer server, MqttConnection connection) {
-        auto msg = new T(header);
+    static void handleMessage(T)(MqttFixedHeader header, Decerealiser cereal,
+                                 MqttServer server, MqttConnection connection) {
+        // auto msg = new T(header);
+        // cereal.grain(msg);
+        auto msg = cereal.value!T(header);
         msg.handle(server, connection);
     }
 }

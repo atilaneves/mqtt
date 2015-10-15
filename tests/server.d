@@ -142,12 +142,10 @@ void testSubscribeWithMessage() {
                       0x02, //qos
         ];
 
-    const msg = MqttFactory.create(bytes);
-    shouldNotBeNull(msg);
-    msg.handle(server, connection); //subscribe
+    MqttFactory.handleMessage(bytes, server, connection);
     const suback = cast(MqttSuback)connection.lastMsg;
     shouldNotBeNull(suback);
-    shouldEqual(suback.msgId, 33);
+    shouldEqual(suback.msgId, 0x21);
     shouldEqual(suback.qos, [1, 2]);
 
     bytes = [ 0x3c, 0x0d, //fixed header
@@ -155,21 +153,21 @@ void testSubscribeWithMessage() {
               0x00, 0x21, //message ID
               'b', 'o', 'r', 'g', //payload
         ];
-    MqttFactory.create(bytes).handle(server, connection); //publish
+    MqttFactory.handleMessage(bytes, server, connection);
 
     bytes = [ 0x3c, 0x0d, //fixed header
               0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',//topic name
               0x00, 0x21, //message ID
               'f', 'o', 'o',//payload
         ];
-    MqttFactory.create(bytes).handle(server, connection); //publish
+    MqttFactory.handleMessage(bytes, server, connection); //publish
 
     bytes = [ 0x3c, 0x0c, //fixed header
               0x00, 0x05, 't', 'h', 'i', 'r', 'd',//topic name
               0x00, 0x21, //message ID
               'f', 'o', 'o',//payload
         ];
-    MqttFactory.create(bytes).handle(server, connection); //publish
+    MqttFactory.handleMessage(bytes, server, connection); //publish
 
 
     shouldEqual(connection.payloads, ["borg", "foo"]);
@@ -223,9 +221,7 @@ void testUnsubscribeHandle() {
                       0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
         ];
 
-    MqttMessage msg = MqttFactory.create(bytes);
-    shouldNotBeNull(msg);
-    msg.handle(server, connection); //unsubscribe
+    MqttFactory.handleMessage(bytes, server, connection);
     const unsuback = cast(MqttUnsuback)connection.lastMsg;
     shouldNotBeNull(unsuback);
     shouldEqual(unsuback.msgId, 33);
@@ -304,8 +300,7 @@ void testPingWithMessage() {
     auto connection = new TestMqttConnection(connectionMsgBytes);
     server.newConnection(connection, connection.connect);
 
-    const msg = MqttFactory.create([0xc0, 0x00]); //ping request
-    msg.handle(server, connection);
+    MqttFactory.handleMessage([0xc0, 0x00], server, connection); //ping request
     const pingResp = cast(MqttPingResp)connection.lastMsg;
     shouldNotBeNull(pingResp);
 }
