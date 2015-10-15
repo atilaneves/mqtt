@@ -58,7 +58,7 @@ private:
 
     auto read() {
         while(connected && !_tcpConnection.empty) {
-            _stream.read(_server, this, _tcpConnection.leastSize);
+            _stream.read(this, _tcpConnection.leastSize);
             _stream.handleMessages(_server, this);
         }
     }

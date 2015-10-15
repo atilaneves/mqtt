@@ -21,21 +21,30 @@ struct MqttStream {
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
-        checkRealloc(bytes.length);
-        immutable end = _bytesRead + bytes.length;
-        readFromBytes(bytes, end);
-
-        _bytes = _buffer[_bytesStart .. end];
-        _bytesRead += bytes.length;
-        updateRemaining();
+        class Connection : MqttConnection {
+            override void read(ubyte[] buf) {
+                copy(bytes, buf);
+            }
+            override void write(in ubyte[] bytes) {}
+            override void disconnect() {}
+        }
+        immutable end = commonStart(bytes.length);
+        (new Connection).read(_buffer[_bytesRead .. end]);
+        commonEnd(bytes.length, end);
     }
 
-    auto read(MqttServer server, MqttConnection connection, unsigned size) {
-        checkRealloc(size);
-        immutable end = _bytesRead + size;
-
+    auto read(MqttConnection connection, unsigned size) {
+        immutable end = commonStart(size);
         connection.read(_buffer[_bytesRead .. end]);
+        commonEnd(size, end);
+    }
 
+    unsigned commonStart(unsigned size) {
+        checkRealloc(size);
+        return _bytesRead + size;
+    }
+
+    void commonEnd(unsigned size, unsigned end) {
         _bytes = _buffer[_bytesStart .. end];
         _bytesRead += size;
         updateRemaining();
@@ -45,9 +54,6 @@ struct MqttStream {
         while(hasMessages()) {
             createMessage().handle(server, connection);
         }
-    }
-
-    auto read(in ubyte[] bytes) {
     }
 
     bool hasMessages() const {
@@ -111,10 +117,5 @@ private:
     const(ubyte[]) slice() const {
         immutable msgSize = _remaining + MqttFixedHeader.SIZE;
         return  _bytes[0..msgSize];
-    }
-
-    void readFromBytes(ubyte[] bytes, in long end) {
-        auto buf = _buffer[_bytesRead .. end];
-        copy(bytes, buf);
     }
 }
