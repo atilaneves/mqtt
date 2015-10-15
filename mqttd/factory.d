@@ -2,6 +2,7 @@ module mqttd.factory;
 
 
 import mqttd.message;
+import mqttd.server;
 import cerealed.decerealiser;
 import std.stdio;
 
@@ -39,6 +40,9 @@ struct MqttFactory {
         }
 
         return _msgCreators[fixedHeader.type](fixedHeader, cereal);
+    }
+
+    static void handleMessage(in ubyte[] bytes, MqttServer server, MqttConnection connection) {
     }
 
 private:
