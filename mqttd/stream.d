@@ -92,7 +92,8 @@ private:
             allocate();
         }
 
-        if(_bytesRead + numBytes > _buffer.length) {
+        immutable limit = (9 * _buffer.length) / 10;
+        if(_bytesRead + numBytes > limit) {
             copy(_bytes, _buffer);
             _bytesStart = 0;
             _bytesRead = _bytes.length;
