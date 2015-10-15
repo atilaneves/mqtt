@@ -42,7 +42,7 @@ struct MqttStream {
 
     void handleMessages(MqttServer server, MqttConnection connection) {
         while(hasMessages()) {
-            createMessage().handle(server, connection);
+            handleMessage(server, connection);
         }
     }
 
