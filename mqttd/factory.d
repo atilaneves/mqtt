@@ -43,6 +43,23 @@ struct MqttFactory {
     }
 
     static void handleMessage(in ubyte[] bytes, MqttServer server, MqttConnection connection) {
+
+        auto cereal = Decerealiser(bytes);
+        auto fixedHeader = cereal.value!MqttFixedHeader;
+
+        if(!fixedHeader.check(bytes, cereal.bytes.length)) {
+            return;
+        }
+
+        cereal.reset(); //so that the created MqttMessage can re-read the header
+
+        if(fixedHeader.type !in _msgCreators) {
+            stderr.writeln("Unknown MQTT message type: ", fixedHeader.type);
+            return;
+        }
+
+        auto msg = _msgCreators[fixedHeader.type](fixedHeader, cereal);
+        msg.handle(server, connection);
     }
 
 private:
