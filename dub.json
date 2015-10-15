@@ -23,6 +23,7 @@
             "sourcePaths": ["tests"],
             "versions": ["VibeCustomMain"],
             "mainSourceFile": "tests/ut.d",
+            "excludedSourceFiles": ["mqttd/app.d"],
             "dependencies": {
                 "unit-threaded": "~>0.5.3"
             }
