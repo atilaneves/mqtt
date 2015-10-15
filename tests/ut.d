@@ -7,7 +7,6 @@ int main(string[] args) {
     writeln(`Running unit tests from dirs ["tests"]`);
     return args.runTests!(
         "tests.broker",
-        "tests.encode",
         "tests.server",
         "tests.stream",
         );
