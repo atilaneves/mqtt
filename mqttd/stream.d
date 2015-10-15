@@ -28,23 +28,15 @@ struct MqttStream {
             override void write(in ubyte[] bytes) {}
             override void disconnect() {}
         }
-        immutable end = commonStart(bytes.length);
-        (new Connection).read(_buffer[_bytesRead .. end]);
-        commonEnd(bytes.length, end);
+        read(new Connection, bytes.length);
     }
 
     auto read(MqttConnection connection, unsigned size) {
-        immutable end = commonStart(size);
-        connection.read(_buffer[_bytesRead .. end]);
-        commonEnd(size, end);
-    }
-
-    unsigned commonStart(unsigned size) {
         checkRealloc(size);
-        return _bytesRead + size;
-    }
+        immutable end = _bytesRead + size;
 
-    void commonEnd(unsigned size, unsigned end) {
+        connection.read(_buffer[_bytesRead .. end]);
+
         _bytes = _buffer[_bytesStart .. end];
         _bytesRead += size;
         updateRemaining();
