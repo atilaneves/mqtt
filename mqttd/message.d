@@ -203,7 +203,6 @@ public:
     void postBlit(Cereal)(ref Cereal cereal) {
         static if(isDecerealiser!Cereal) {
             assert(!cantDecerealise, "Cannot decerealise if constructed from payload");
-            payload = _payloadBuffer[];
         }
 
         auto payloadLen = header.remaining - (topic.length + MqttFixedHeader.SIZE);
@@ -237,7 +236,6 @@ public:
     MqttFixedHeader header;
     string topic;
     @NoCereal ubyte[] payload;
-    private @NoCereal ubyte[100] _payloadBuffer;
     @NoCereal ushort msgId;
     @NoCereal bool cantDecerealise;
 }
