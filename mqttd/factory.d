@@ -8,7 +8,7 @@ import std.stdio;
 
 
 struct MqttFactory {
-    static void handleMessage(in ubyte[] bytes, MqttServer server, MqttConnection connection) {
+    static void handleMessage(T)(in ubyte[] bytes, MqttServer!T server, MqttConnection connection) {
 
         auto cereal = Decerealiser(bytes);
         auto fixedHeader = cereal.value!MqttFixedHeader;
@@ -58,10 +58,10 @@ struct MqttFactory {
 
 private:
 
-    static void handleMessage(T)(MqttFixedHeader header, Decerealiser cereal,
-                                 MqttServer server, MqttConnection connection) {
-        static if(__traits(hasMember, T, "handle")) {
-            auto msg = T(header);
+    static void handleMessage(M, S)(MqttFixedHeader header, Decerealiser cereal,
+                                    MqttServer!S server, MqttConnection connection) {
+        static if(__traits(hasMember, M, "handle")) {
+            auto msg = M(header);
             cereal.grain(msg);
 
             msg.handle(server, connection);

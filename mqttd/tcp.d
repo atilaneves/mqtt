@@ -10,7 +10,7 @@ import std.stdio;
 
 
 class MqttTcpConnection: MqttConnection {
-    this(MqttServer server, TCPConnection tcpConnection) {
+    this(MqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
@@ -51,7 +51,7 @@ class MqttTcpConnection: MqttConnection {
 
 private:
 
-    MqttServer _server;
+    MqttServer!(typeof(this)) _server;
     TCPConnection _tcpConnection;
     bool _connected;
     MqttStream _stream;
@@ -62,4 +62,6 @@ private:
             _stream.handleMessages(_server, this);
         }
     }
+
+    static assert(isMqttConnection!MqttTcpConnection);
 }

@@ -40,7 +40,7 @@ struct MqttStream {
         updateRemaining();
     }
 
-    void handleMessages(MqttServer server, MqttConnection connection) {
+    void handleMessages(T)(MqttServer!T server, MqttConnection connection) {
         while(hasMessages()) handleMessage(server, connection);
     }
 
@@ -52,7 +52,7 @@ struct MqttStream {
         return _bytes.length == 0;
     }
 
-    void handleMessage(MqttServer server, MqttConnection connection) {
+    void handleMessage(T)(MqttServer!T server, MqttConnection connection) {
         if(!hasMessages()) return;
 
         const slice = slice();

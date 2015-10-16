@@ -12,7 +12,7 @@ class TestMqttSubscriber: MqttSubscriber {
 }
 
 void testSubscribe() {
-    auto broker = MqttBroker();
+    auto broker = MqttBroker!TestMqttSubscriber();
 
     auto subscriber = new TestMqttSubscriber();
     broker.publish("topics/foo", "my foo is foo");
@@ -31,7 +31,7 @@ void testSubscribe() {
 
 
 void testUnsubscribeAll() {
-    auto broker = MqttBroker();
+    auto broker = MqttBroker!TestMqttSubscriber();
     auto subscriber = new TestMqttSubscriber();
 
     broker.subscribe(subscriber, ["topics/foo"]);
@@ -47,7 +47,7 @@ void testUnsubscribeAll() {
 
 
 void testUnsubscribeOne() {
-    auto broker = MqttBroker();
+    auto broker = MqttBroker!TestMqttSubscriber();
     auto subscriber = new TestMqttSubscriber();
 
     broker.subscribe(subscriber, ["topics/foo", "topics/bar"]);
@@ -65,7 +65,7 @@ void testUnsubscribeOne() {
 
 
 private void checkMatches(in string pubTopic, in string subTopic, bool matches) {
-    auto broker = MqttBroker();
+    auto broker = MqttBroker!TestMqttSubscriber();
     auto subscriber = new TestMqttSubscriber();
 
     broker.subscribe(subscriber, [subTopic]);
@@ -97,7 +97,7 @@ void testWildCards() {
 
 
 void testSubscribeWithWildCards() {
-    auto broker = MqttBroker();
+    auto broker = MqttBroker!TestMqttSubscriber();
     auto subscriber1 = new TestMqttSubscriber();
 
     broker.subscribe(subscriber1, ["topics/foo/+"]);

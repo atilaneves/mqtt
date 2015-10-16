@@ -10,7 +10,15 @@ import std.algorithm;
 import std.array;
 
 
-class MqttServer {
+enum isMqttConnection(T) = isMqttSubscriber!T && is(typeof(() {
+    ubyte[] bytes;
+    auto t = T.init;
+    t.read(bytes);
+    t.write(bytes);
+    t.disconnect();
+}));
+
+class MqttServer(T) if(isMqttConnection!T) {
     void newConnection(MqttConnection connection, in MqttConnect connect) {
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
@@ -60,7 +68,7 @@ class MqttServer {
 
 private:
 
-    MqttBroker _broker;
+    MqttBroker!T _broker;
 }
 
 interface MqttInput {
@@ -76,4 +84,10 @@ class MqttConnection: MqttSubscriber, MqttInput {
     }
     abstract void write(in ubyte[] bytes);
     abstract void disconnect();
+
+    final void newMessage(in ubyte[] bytes) {
+        write(bytes);
+    }
+
+    static assert(isMqttSubscriber!MqttConnection);
 }

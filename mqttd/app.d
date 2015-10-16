@@ -1,17 +1,15 @@
 import vibe.d;
 import mqttd.server;
 import mqttd.tcp;
-
 import std.stdio;
 
-
-private __gshared MqttServer gServer;
+private __gshared MqttServer!(MqttTcpConnection) gServer;
 
 shared static this() {
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
-    gServer = new MqttServer();
+    gServer = new MqttServer!MqttTcpConnection();
     gServer.useCache = true;
     listenTCP_s(1883, &accept);
 }

@@ -14,8 +14,13 @@ interface MqttSubscriber {
     void newMessage(in string topic, in ubyte[] payload);
 }
 
+enum isMqttSubscriber(T) = is(typeof((){
+    const(ubyte)[] bytes;
+    //T.init.newMessage(bytes);
+    T.init.newMessage("topic", bytes);
+}));
 
-struct MqttBroker {
+struct MqttBroker(T) if(isMqttSubscriber!T) {
 public:
 
     void subscribe(MqttSubscriber subscriber, in string[] topics) {
