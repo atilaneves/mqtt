@@ -195,7 +195,7 @@ public:
         this.header = MqttFixedHeader(MqttType.PUBLISH, dup, qos, retain, remaining);
         this.topic = topic;
         //only safe if we never change it
-        this.payload = cast(ubyte[])payload;
+        _payload = cast(ubyte[])payload;
         this.msgId = msgId;
         this.cantDecerealise = true; //because of the cast
     }
@@ -221,9 +221,9 @@ public:
         }
 
         static if(isDecerealiser!Cereal) {
-            payload = cast(ubyte[])cereal.bytes; //dirty but fast
+            _payload = cast(ubyte[])cereal.bytes; //dirty but fast
         } else {
-            cereal.grainRaw(payload);
+            cereal.grainRaw(_payload);
         }
     }
 
@@ -233,9 +233,13 @@ public:
         server.publish(topic, payload);
     }
 
+    const(ubyte)[] payload() @safe pure const nothrow {
+        return _payload;
+    }
+
     MqttFixedHeader header;
     string topic;
-    @NoCereal ubyte[] payload;
+    private @NoCereal ubyte[] _payload;
     @NoCereal ushort msgId;
     @NoCereal bool cantDecerealise;
 }
