@@ -221,8 +221,11 @@ public:
             }
         }
 
-        static if(isDecerealiser!Cereal) payload.length = payloadLen;
-        foreach(ref b; payload) cereal.grain(b);
+        static if(isDecerealiser!Cereal) {
+            payload = cast(ubyte[])cereal.bytes; //dirty but fast
+        } else {
+            cereal.grainRaw(payload);
+        }
     }
 
     mixin assertHasPostBlit!MqttPublish;

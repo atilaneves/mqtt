@@ -154,8 +154,12 @@ private struct SubscriptionTree {
         publish(topic, topParts, payload, _nodes);
     }
 
-    void publish(R)(in string topic, R topParts, in const(ubyte)[] payload,
-                    Node*[string] nodes) if(isTopicRange!R) {
+    void publish(R)(in string topic,
+                    R topParts,
+                    in const(ubyte)[] payload,
+                    Node*[string] nodes)
+        if(isTopicRange!R) {
+
         //check the cache first
         if(_useCache && topic in _cache) {
             foreach(s; _cache[topic]) s.newMessage(topic, payload);
