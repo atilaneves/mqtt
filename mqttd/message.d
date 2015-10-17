@@ -255,7 +255,7 @@ public:
     }
 
     void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.subscribe(connection, msgId, topics);
+        server.subscribe(connection, msgId, topics.dup);
     }
 
     static struct Topic {
