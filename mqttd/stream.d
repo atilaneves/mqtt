@@ -21,15 +21,16 @@ struct MqttStream {
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
-        class Input : MqttInput {
-            override void read(ubyte[] buf) {
+        struct Input {
+            void read(ubyte[] buf) {
                 copy(bytes, buf);
             }
+            static assert(isMqttInput!Input);
         }
         read(new Input, bytes.length);
     }
 
-    auto read(MqttInput input, unsigned size) {
+    void read(T)(T input, unsigned size) if(isMqttInput!T) {
         checkRealloc(size);
         immutable end = _bytesRead + size;
 

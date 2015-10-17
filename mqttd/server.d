@@ -77,22 +77,19 @@ private:
     MqttBroker!T _broker;
 }
 
-interface MqttInput {
-    void read(ubyte[] bytes);
-}
 
-
-class MqttConnection: MqttInput {
+class MqttConnection {
     void newMessage(in string topic, in ubyte[] payload) {
         MqttPublish(topic, payload).cerealise!(b => write(cast(immutable)b));
     }
 
-    override void read(ubyte[] bytes) {
+    void read(ubyte[] bytes) {
     }
+
     abstract void write(in ubyte[] bytes);
     abstract void disconnect();
 
-    final void newMessage(in ubyte[] bytes) {
+    void newMessage(in ubyte[] bytes) {
         write(bytes);
     }
 
