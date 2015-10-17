@@ -25,7 +25,10 @@ enum isMqttConnection(T) = isMqttSubscriber!T && isMqttInput!T && is(typeof(() {
 }));
 
 class MqttServer(T) if(isMqttConnection!T) {
-    void newConnection(T connection, in MqttConnect connect) {
+
+    alias Connection = RefType!T;
+
+    void newConnection(Connection connection, in MqttConnect connect) {
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
             code = MqttConnack.Code.BAD_ID;
@@ -34,22 +37,22 @@ class MqttServer(T) if(isMqttConnection!T) {
         MqttConnack(code).cerealise!(b => connection.write(b));
     }
 
-    void subscribe(T connection, in ushort msgId, in string[] topics) {
+    void subscribe(Connection connection, in ushort msgId, in string[] topics) {
         enum qos = 0;
         subscribe(connection, msgId, topics.map!(a => MqttSubscribe.Topic(a, qos)).array);
     }
 
-    void subscribe(T connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
+    void subscribe(Connection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = topics.map!(a => a.qos).array;
         MqttSuback(msgId, qos).cerealise!(b => connection.write(b));
         _broker.subscribe(connection, topics);
     }
 
-    void unsubscribe(T connection) {
+    void unsubscribe(Connection connection) {
         _broker.unsubscribe(connection);
     }
 
-    void unsubscribe(T connection, in ushort msgId, in string[] topics) {
+    void unsubscribe(Connection connection, in ushort msgId, in string[] topics) {
         MqttUnsuback(msgId).cerealise!(b => connection.write(b));
         _broker.unsubscribe(connection, topics);
     }
@@ -62,7 +65,7 @@ class MqttServer(T) if(isMqttConnection!T) {
         _broker.publish(topic, payload);
     }
 
-    void ping(T connection) const {
+    void ping(Connection connection) const {
         static MqttPingResp resp;
         connection.write(resp.encode);
     }
