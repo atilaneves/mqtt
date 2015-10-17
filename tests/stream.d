@@ -10,7 +10,7 @@ void testMqttInTwoPackets() {
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
                        'b', 'o', 'r' ]; //1st part of payload
-    auto stream = MqttStream2(128);
+    auto stream = MqttStream(128);
     stream ~= bytes1;
     stream.hasMessages.shouldBeFalse;
 
@@ -26,7 +26,7 @@ void testTwoMqttInThreePackets() {
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
                        'a', 'b', 'c' ]; //1st part of payload
-    auto stream = MqttStream2(128);
+    auto stream = MqttStream(128);
     stream ~= bytes1;
     shouldBeFalse(stream.hasMessages());
 
@@ -47,7 +47,7 @@ void testTwoMqttInThreePacketsMultiPop() {
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
                        'a', 'b', 'c' ]; //1st part of payload
-    auto stream = MqttStream2(128);
+    auto stream = MqttStream(128);
     stream ~= bytes1;
 
     ubyte[] bytes2 = [ 'd', 'e', 'f', 'g', 'h']; //2nd part of payload
@@ -62,7 +62,7 @@ void testTwoMqttInThreePacketsMultiPop() {
 
 
 void testTwoMqttInOnePacket() {
-   auto stream = MqttStream2(128);
+   auto stream = MqttStream(128);
    shouldBeFalse(stream.hasMessages());
 
    ubyte[] bytes1 = [ 0x3c ]; // half of header
@@ -83,7 +83,7 @@ void testTwoMqttInOnePacket() {
 
 
 void testBug1() {
-    auto stream = MqttStream2(128);
+    auto stream = MqttStream(128);
 
     ubyte[] msg = [48, 20, 0, 16, 112, 105, 110, 103, 116, 101, 115, 116, 47, 48, 47, 114, 101, 112, 108, 121, 111, 107];
     ubyte[] bytes1 = msg ~ msg[0..$-4];
@@ -93,7 +93,7 @@ void testBug1() {
 
 
 void testBug2() {
-    auto stream = MqttStream2(128);
+    auto stream = MqttStream(128);
 
     ubyte[] bytes1 = [48, 26, 0, 18, 112, 105, 110, 103, 116, 101, 115, 116, 47, 48, 47, 114, 101, 113, 117, 101, 115, 116];
     stream ~= bytes1;
