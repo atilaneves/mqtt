@@ -21,15 +21,16 @@ struct MqttStream {
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
-        class Input : MqttInput {
-            override void read(ubyte[] buf) {
+        struct Input {
+            void read(ubyte[] buf) {
                 copy(bytes, buf);
             }
+            static assert(isMqttInput!Input);
         }
         read(new Input, bytes.length);
     }
 
-    auto read(MqttInput input, unsigned size) {
+    void read(T)(T input, unsigned size) if(isMqttInput!T) {
         checkRealloc(size);
         immutable end = _bytesRead + size;
 
@@ -40,7 +41,7 @@ struct MqttStream {
         updateRemaining();
     }
 
-    void handleMessages(MqttServer server, MqttConnection connection) {
+    void handleMessages(T)(MqttServer!T server, T connection) if(isMqttConnection!T) {
         while(hasMessages()) handleMessage(server, connection);
     }
 
@@ -52,7 +53,7 @@ struct MqttStream {
         return _bytes.length == 0;
     }
 
-    void handleMessage(MqttServer server, MqttConnection connection) {
+    void handleMessage(T)(MqttServer!T server, T connection) if(isMqttConnection!T) {
         if(!hasMessages()) return;
 
         const slice = slice();

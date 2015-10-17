@@ -9,8 +9,10 @@ import vibe.d;
 import std.stdio;
 
 
-class MqttTcpConnection: MqttConnection {
-    this(MqttServer server, TCPConnection tcpConnection) {
+class MqttTcpConnection {
+    mixin MqttConnection;
+
+    this(MqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
@@ -18,17 +20,17 @@ class MqttTcpConnection: MqttConnection {
         _stream = MqttStream(bufferSize);
     }
 
-    override void read(ubyte[] bytes) {
+    final void read(ubyte[] bytes) {
         _tcpConnection.read(bytes);
     }
 
-    override void write(in ubyte[] bytes) {
+    final void write(in ubyte[] bytes) {
         if(connected) {
             _tcpConnection.write(bytes);
         }
     }
 
-    void run() {
+    final void run() {
         while(connected) {
             if(!_tcpConnection.waitForData(60.seconds) ) {
                 stderr.writeln("Persistent connection timeout!");
@@ -41,25 +43,27 @@ class MqttTcpConnection: MqttConnection {
         _connected = false;
     }
 
-    @property bool connected() const {
+    final @property bool connected() const {
         return _tcpConnection.connected && _connected;
     }
 
-    override void disconnect() {
+    final void disconnect() {
         _connected = false;
     }
 
 private:
 
-    MqttServer _server;
+    MqttServer!(typeof(this)) _server;
     TCPConnection _tcpConnection;
     bool _connected;
     MqttStream _stream;
 
-    auto read() {
+    final void read() {
         while(connected && !_tcpConnection.empty) {
             _stream.read(this, _tcpConnection.leastSize);
             _stream.handleMessages(_server, this);
         }
     }
+
+    static assert(isMqttConnection!MqttTcpConnection);
 }

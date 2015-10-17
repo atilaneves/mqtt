@@ -22,12 +22,15 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
 }
 
 
-class TestMqttConnection: MqttConnection {
+class TestMqttConnection {
+    mixin MqttConnection;
+
+
     this() {
         connected = false;
     }
 
-    override void write(in ubyte[] bytes) {
+    void write(in ubyte[] bytes) {
         lastBytes = bytes.dup;
         writelnUt("TestMqttConnection got a message from the server:\n", lastBytes, "\n");
 
@@ -43,11 +46,11 @@ class TestMqttConnection: MqttConnection {
 
     }
 
-    override void newMessage(in string topic, in ubyte[] payload) {
+    void newMessage(in string topic, in ubyte[] payload) {
         payloads ~= payload.map!(a => cast(char)a).array;
     }
 
-    override void disconnect() { connected = false; }
+    void disconnect() { connected = false; }
 
     T lastMsg(T)() {
         auto dec = Decerealiser(lastBytes);
@@ -64,10 +67,12 @@ class TestMqttConnection: MqttConnection {
     bool connected;
     MqttConnect connect;
     MqttConnack.Code code;
+
+    static assert(isMqttConnection!TestMqttConnection);
 }
 
 void testConnect() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection;
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
     connection.code.shouldEqual(MqttConnack.Code.ACCEPTED);
@@ -75,7 +80,7 @@ void testConnect() {
 
 
 void testConnectBigId() {
-   auto server = new MqttServer();
+   auto server = new MqttServer!TestMqttConnection();
     ubyte[] bytes = [ 0x10, 0x3f, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
@@ -96,7 +101,7 @@ void testConnectBigId() {
 }
 
 void testConnectSmallId() {
-   auto server = new MqttServer();
+   auto server = new MqttServer!TestMqttConnection();
     ubyte[] bytes = [ 0x10, 0x27, //fixed header
                       0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
                       0x03, //protocol version
@@ -116,7 +121,7 @@ void testConnectSmallId() {
 }
 
 void testSubscribe() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection;
 
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
@@ -141,7 +146,7 @@ void testSubscribe() {
 
 
 void testSubscribeWithMessage() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection;
 
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
@@ -188,7 +193,7 @@ void testSubscribeWithMessage() {
 }
 
 void testUnsubscribe() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection;
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
 
@@ -218,7 +223,7 @@ void testUnsubscribe() {
 
 
 void testUnsubscribeHandle() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection();
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
     server.subscribe(connection, 42, ["foo/bar/+"]);
@@ -243,7 +248,7 @@ void testUnsubscribeHandle() {
 
 void testSubscribeWildCard() {
     import std.conv;
-    auto server = new MqttServer;
+    auto server = new MqttServer!TestMqttConnection;
     TestMqttConnection[] reqs;
     TestMqttConnection[] reps;
     TestMqttConnection[] wlds;
@@ -295,7 +300,7 @@ void testSubscribeWildCard() {
 
 
 void testPing() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection;
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
 
@@ -305,7 +310,7 @@ void testPing() {
 
 
 void testPingWithMessage() {
-    auto server = new MqttServer();
+    auto server = new MqttServer!TestMqttConnection();
     auto connection = new TestMqttConnection;
     MqttFactory.handleMessage(connectionMsgBytes, server, connection);
 

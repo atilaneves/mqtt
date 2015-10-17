@@ -10,30 +10,68 @@ import std.range;
 
 enum isTopicRange(R) = isForwardRange!R;
 
-interface MqttSubscriber {
-    void newMessage(in string topic, in ubyte[] payload);
+
+enum isMqttSubscriber(T) = is(typeof((){
+    const(ubyte)[] bytes;
+    //T.init.newMessage(bytes);
+    T.init.newMessage("topic", bytes);
+}));
+
+template RefType(T) {
+    static if(is(T == struct))
+        alias RefType = T*;
+    else static if(is(T == class) || is(T == interface))
+        alias RefType = T;
+    else
+        static assert(0);
 }
 
+unittest {
+    struct Struct {}
+    class Class {}
+    interface Interface {}
+    static assert(is(RefType!Struct == Struct*));
+    static assert(is(RefType!Class == Class));
+    static assert(is(RefType!Interface == Interface));
+}
 
-struct MqttBroker {
+struct MqttBroker(T) if(isMqttSubscriber!T) {
 public:
 
-    void subscribe(MqttSubscriber subscriber, in string[] topics) {
+    alias Subscriber = RefType!T;
+
+    void subscribe(U)(ref U subscriber, in string[] topics) if(is(U == struct) && isMqttSubscriber!U) {
+        subscribe(&subscriber, topics);
+    }
+
+    void subscribe(Subscriber subscriber, in string[] topics) {
         subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a, 0)).array);
     }
 
-    void subscribe(MqttSubscriber subscriber, in MqttSubscribe.Topic[] topics) {
+    void subscribe(U)(ref U subscriber, in MqttSubscribe.Topic[] topics) if(is(U == struct) && isMqttSubscriber!U) {
+        subscribe(&subscriber, topics);
+    }
+
+    void subscribe(Subscriber subscriber, in MqttSubscribe.Topic[] topics) {
         foreach(t; topics) {
             const parts = array(splitter(t.topic, "/"));
-            _subscriptions.addSubscription(Subscription(subscriber, t, parts), parts);
+            _subscriptions.addSubscription(Subscription!Subscriber(subscriber, t, parts), parts);
         }
     }
 
-    void unsubscribe(MqttSubscriber subscriber) {
+    void unsubscribe(U)(ref U subscriber) if(is(U == struct) && isMqttSubscriber!U) {
+        unsubscribe(&subscriber);
+    }
+
+    void unsubscribe(Subscriber subscriber) {
         _subscriptions.removeSubscription(subscriber, _subscriptions._nodes);
     }
 
-    void unsubscribe(MqttSubscriber subscriber, in string[] topics) {
+    void unsubscribe(U)(ref U subscriber, in string[] topics) if(is(U == struct) && isMqttSubscriber!U) {
+        _subscriptions.removeSubscription(&subscriber, topics, _subscriptions._nodes);
+    }
+
+    void unsubscribe(Subscriber subscriber, in string[] topics) {
         _subscriptions.removeSubscription(subscriber, topics, _subscriptions._nodes);
     }
 
@@ -51,7 +89,7 @@ public:
 
 private:
 
-    SubscriptionTree _subscriptions;
+    SubscriptionTree!Subscriber _subscriptions;
 
     void publish(R)(in string topic, R topParts, in ubyte[] payload) if(isTopicRange!R) {
         _subscriptions.publish(topic, topParts, payload);
@@ -71,21 +109,21 @@ private bool equalOrPlus(in string pat, in string top) pure nothrow {
 }
 
 
-private struct SubscriptionTree {
+private struct SubscriptionTree(T) if(isMqttSubscriber!T) {
     private static struct Node {
         string part;
         Node* parent;
         Node*[string] branches;
-        Subscription[] leaves;
+        Subscription!T[] leaves;
     }
 
-    void addSubscription(Subscription s, in string[] parts) {
+    void addSubscription(Subscription!T s, in string[] parts) {
         assert(parts.length);
         if(_useCache) _cache = _cache.init; //invalidate cache
         addSubscriptionImpl(s, parts, null, _nodes);
     }
 
-    void addSubscriptionImpl(Subscription s, const(string)[] parts,
+    void addSubscriptionImpl(Subscription!T s, const(string)[] parts,
                              Node* parent, ref Node*[string] nodes) {
         auto part = parts[0];
         parts = parts[1 .. $];
@@ -110,7 +148,7 @@ private struct SubscriptionTree {
         return node;
     }
 
-    void removeSubscription(MqttSubscriber subscriber, ref Node*[string] nodes) {
+    void removeSubscription(T subscriber, ref Node*[string] nodes) {
         if(_useCache) _cache = _cache.init; //invalidate cache
         auto newnodes = nodes.dup;
         foreach(n; newnodes) {
@@ -125,7 +163,7 @@ private struct SubscriptionTree {
         }
     }
 
-    void removeSubscription(MqttSubscriber subscriber, in string[] topic, ref Node*[string] nodes) {
+    void removeSubscription(T subscriber, in string[] topic, ref Node*[string] nodes) {
         if(_useCache) _cache = _cache.init; //invalidate cache
         auto newnodes = nodes.dup;
         foreach(n; newnodes) {
@@ -196,7 +234,7 @@ private struct SubscriptionTree {
                        in const(ubyte)[] payload,
                        in string topPart,
                        in bool hasOneElement,
-                       Subscription[] subscriptions) {
+                       Subscription!T[] subscriptions) {
         foreach(sub; subscriptions) {
             if(hasOneElement &&
                equalOrPlus(sub._part, topPart)) {
@@ -208,7 +246,7 @@ private struct SubscriptionTree {
         }
     }
 
-    void publishLeaf(Subscription sub, in string topic, in const(ubyte)[] payload) {
+    void publishLeaf(Subscription!T sub, in string topic, in const(ubyte)[] payload) {
         sub.newMessage(topic, payload);
         if(_useCache) _cache[topic] ~= sub;
     }
@@ -217,13 +255,13 @@ private struct SubscriptionTree {
 private:
 
     bool _useCache;
-    Subscription[][string] _cache;
+    Subscription!T[][string] _cache;
     Node*[string] _nodes;
 }
 
 
-private struct Subscription {
-    this(MqttSubscriber subscriber, in MqttSubscribe.Topic topic, in string[] topicParts) {
+private struct Subscription(T) if(isMqttSubscriber!T) {
+    this(T subscriber, in MqttSubscribe.Topic topic, in string[] topicParts) {
         _subscriber = subscriber;
         _part = topicParts[$ - 1];
         _topic = topic.topic;
@@ -234,11 +272,11 @@ private struct Subscription {
         _subscriber.newMessage(topic, payload);
     }
 
-    bool isSubscriber(MqttSubscriber subscriber) const {
+    bool isSubscriber(T subscriber) const {
         return _subscriber == subscriber;
     }
 
-    bool isSubscription(MqttSubscriber subscriber, in string[] topics) const {
+    bool isSubscription(T subscriber, in string[] topics) const {
         return isSubscriber(subscriber) && isTopic(topics);
     }
 
@@ -247,7 +285,7 @@ private struct Subscription {
     }
 
 private:
-    MqttSubscriber _subscriber;
+    T _subscriber;
     string _part;
     string _topic;
     ubyte _qos;
