@@ -4,11 +4,12 @@ import unit_threaded;
 import mqttd.broker;
 
 
-class TestMqttSubscriber: MqttSubscriber {
-    override void newMessage(in string topic, in ubyte[] payload) {
+struct TestMqttSubscriber {
+    void newMessage(in string topic, in ubyte[] payload) {
         messages ~= cast(string)payload;
     }
     string[] messages;
+    static assert(isMqttSubscriber!TestMqttSubscriber);
 }
 
 void testSubscribe() {

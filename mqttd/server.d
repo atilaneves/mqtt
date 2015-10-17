@@ -19,7 +19,7 @@ enum isMqttConnection(T) = isMqttSubscriber!T && is(typeof(() {
 }));
 
 class MqttServer(T) if(isMqttConnection!T) {
-    void newConnection(MqttConnection connection, in MqttConnect connect) {
+    void newConnection(T connection, in MqttConnect connect) {
         auto code = MqttConnack.Code.ACCEPTED;
         if(connect.isBadClientId) {
             code = MqttConnack.Code.BAD_ID;
@@ -28,22 +28,22 @@ class MqttServer(T) if(isMqttConnection!T) {
         MqttConnack(code).cerealise!(b => connection.write(b));
     }
 
-    void subscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
+    void subscribe(T connection, in ushort msgId, in string[] topics) {
         enum qos = 0;
         subscribe(connection, msgId, topics.map!(a => MqttSubscribe.Topic(a, qos)).array);
     }
 
-    void subscribe(MqttConnection connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
+    void subscribe(T connection, in ushort msgId, in MqttSubscribe.Topic[] topics) {
         const qos = topics.map!(a => a.qos).array;
         MqttSuback(msgId, qos).cerealise!(b => connection.write(b));
         _broker.subscribe(connection, topics);
     }
 
-    void unsubscribe(MqttConnection connection) {
+    void unsubscribe(T connection) {
         _broker.unsubscribe(connection);
     }
 
-    void unsubscribe(MqttConnection connection, in ushort msgId, in string[] topics) {
+    void unsubscribe(T connection, in ushort msgId, in string[] topics) {
         MqttUnsuback(msgId).cerealise!(b => connection.write(b));
         _broker.unsubscribe(connection, topics);
     }
@@ -56,7 +56,7 @@ class MqttServer(T) if(isMqttConnection!T) {
         _broker.publish(topic, payload);
     }
 
-    void ping(MqttConnection connection) const {
+    void ping(T connection) const {
         static MqttPingResp resp;
         connection.write(resp.encode);
     }
@@ -75,8 +75,8 @@ interface MqttInput {
     void read(ubyte[] bytes);
 }
 
-class MqttConnection: MqttSubscriber, MqttInput {
-    override void newMessage(in string topic, in ubyte[] payload) {
+class MqttConnection: MqttInput {
+    void newMessage(in string topic, in ubyte[] payload) {
         MqttPublish(topic, payload).cerealise!(b => write(cast(immutable)b));
     }
 
