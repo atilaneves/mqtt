@@ -128,7 +128,7 @@ struct MqttStream2 {
         read(new Input, bytes.length);
     }
 
-    void read(T)(auto ref T input, unsigned size) if(isMqttInput!T) {
+    void read(T)(auto ref T input, unsigned size) @trusted if(isMqttInput!T) {
         resetBuffer;
 
         immutable end = _bytesRead + size;

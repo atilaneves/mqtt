@@ -144,7 +144,7 @@ private struct SubscriptionTree(T) if(isMqttSubscriber!T) {
             }
         }
         auto node = new Node(part, parent);
-        nodes[part] = node;
+        nodes[part.idup] = node;
         return node;
     }
 
@@ -248,7 +248,7 @@ private struct SubscriptionTree(T) if(isMqttSubscriber!T) {
 
     void publishLeaf(Subscription!T sub, in string topic, in const(ubyte)[] payload) {
         sub.newMessage(topic, payload);
-        if(_useCache) _cache[topic] ~= sub;
+        if(_useCache) _cache[topic.idup] ~= sub;
     }
 
 
@@ -263,8 +263,8 @@ private:
 private struct Subscription(T) if(isMqttSubscriber!T) {
     this(T subscriber, in MqttSubscribe.Topic topic, in string[] topicParts) {
         _subscriber = subscriber;
-        _part = topicParts[$ - 1];
-        _topic = topic.topic;
+        _part = topicParts[$ - 1].idup;
+        _topic = topic.topic.idup;
         _qos = topic.qos;
     }
 
