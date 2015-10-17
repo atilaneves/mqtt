@@ -20,17 +20,17 @@ class MqttTcpConnection {
         _stream = MqttStream(bufferSize);
     }
 
-    void read(ubyte[] bytes) {
+    final void read(ubyte[] bytes) {
         _tcpConnection.read(bytes);
     }
 
-    void write(in ubyte[] bytes) {
+    final void write(in ubyte[] bytes) {
         if(connected) {
             _tcpConnection.write(bytes);
         }
     }
 
-    void run() {
+    final void run() {
         while(connected) {
             if(!_tcpConnection.waitForData(60.seconds) ) {
                 stderr.writeln("Persistent connection timeout!");
@@ -43,11 +43,11 @@ class MqttTcpConnection {
         _connected = false;
     }
 
-    @property bool connected() const {
+    final @property bool connected() const {
         return _tcpConnection.connected && _connected;
     }
 
-    void disconnect() {
+    final void disconnect() {
         _connected = false;
     }
 
@@ -58,7 +58,7 @@ private:
     bool _connected;
     MqttStream _stream;
 
-    auto read() {
+    final void read() {
         while(connected && !_tcpConnection.empty) {
             _stream.read(this, _tcpConnection.leastSize);
             _stream.handleMessages(_server, this);
