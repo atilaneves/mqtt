@@ -78,20 +78,15 @@ private:
 }
 
 
-class MqttConnection {
+mixin template MqttConnection() {
     void newMessage(in string topic, in ubyte[] payload) {
+        import cerealed;
         MqttPublish(topic, payload).cerealise!(b => write(cast(immutable)b));
     }
-
-    void read(ubyte[] bytes) {
-    }
-
-    abstract void write(in ubyte[] bytes);
-    abstract void disconnect();
 
     void newMessage(in ubyte[] bytes) {
         write(bytes);
     }
 
-    static assert(isMqttSubscriber!MqttConnection);
+    void read(ubyte[] bytes) {}
 }

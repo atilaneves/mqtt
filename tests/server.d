@@ -22,12 +22,15 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
 }
 
 
-class TestMqttConnection: MqttConnection {
+class TestMqttConnection {
+    mixin MqttConnection;
+
+
     this() {
         connected = false;
     }
 
-    override void write(in ubyte[] bytes) {
+    void write(in ubyte[] bytes) {
         lastBytes = bytes.dup;
         writelnUt("TestMqttConnection got a message from the server:\n", lastBytes, "\n");
 
@@ -43,11 +46,11 @@ class TestMqttConnection: MqttConnection {
 
     }
 
-    override void newMessage(in string topic, in ubyte[] payload) {
+    void newMessage(in string topic, in ubyte[] payload) {
         payloads ~= payload.map!(a => cast(char)a).array;
     }
 
-    override void disconnect() { connected = false; }
+    void disconnect() { connected = false; }
 
     T lastMsg(T)() {
         auto dec = Decerealiser(lastBytes);
@@ -64,6 +67,8 @@ class TestMqttConnection: MqttConnection {
     bool connected;
     MqttConnect connect;
     MqttConnack.Code code;
+
+    static assert(isMqttConnection!TestMqttConnection);
 }
 
 void testConnect() {

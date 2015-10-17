@@ -9,7 +9,9 @@ import vibe.d;
 import std.stdio;
 
 
-class MqttTcpConnection: MqttConnection {
+class MqttTcpConnection {
+    mixin MqttConnection;
+
     this(MqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
         _server = server;
         _tcpConnection = tcpConnection;
@@ -18,11 +20,11 @@ class MqttTcpConnection: MqttConnection {
         _stream = MqttStream(bufferSize);
     }
 
-    override void read(ubyte[] bytes) {
+    void read(ubyte[] bytes) {
         _tcpConnection.read(bytes);
     }
 
-    override void write(in ubyte[] bytes) {
+    void write(in ubyte[] bytes) {
         if(connected) {
             _tcpConnection.write(bytes);
         }
@@ -45,7 +47,7 @@ class MqttTcpConnection: MqttConnection {
         return _tcpConnection.connected && _connected;
     }
 
-    override void disconnect() {
+    void disconnect() {
         _connected = false;
     }
 
