@@ -45,7 +45,7 @@ public:
     }
 
     void subscribe(Subscriber subscriber, in string[] topics) {
-        subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a, 0)).array);
+        subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a.idup, 0)).array);
     }
 
     void subscribe(U)(ref U subscriber, in MqttSubscribe.Topic[] topics) if(is(U == struct) && isMqttSubscriber!U) {
@@ -138,13 +138,13 @@ private struct SubscriptionTree(T) if(isMqttSubscriber!T) {
     Node* addOrFindNode(in string part,
                         Node* parent, ref Node*[string] nodes) {
         if(part in nodes) {
-            auto n = nodes[part];
+            auto n = nodes[part.idup];
             if(part == n.part) {
                 return n;
             }
         }
-        auto node = new Node(part, parent);
-        nodes[part] = node;
+        auto node = new Node(part.idup, parent);
+        nodes[part.idup] = node;
         return node;
     }
 
@@ -248,7 +248,7 @@ private struct SubscriptionTree(T) if(isMqttSubscriber!T) {
 
     void publishLeaf(Subscription!T sub, in string topic, in const(ubyte)[] payload) {
         sub.newMessage(topic, payload);
-        if(_useCache) _cache[topic] ~= sub;
+        if(_useCache) _cache[topic.idup] ~= sub;
     }
 
 
@@ -263,8 +263,8 @@ private:
 private struct Subscription(T) if(isMqttSubscriber!T) {
     this(T subscriber, in MqttSubscribe.Topic topic, in string[] topicParts) {
         _subscriber = subscriber;
-        _part = topicParts[$ - 1];
-        _topic = topic.topic;
+        _part = topicParts[$ - 1].idup;
+        _topic = topic.topic.idup;
         _qos = topic.qos;
     }
 

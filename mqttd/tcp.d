@@ -16,7 +16,7 @@ class MqttTcpConnection {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
-        enum bufferSize = 1024 * 128;
+        enum bufferSize = 1024 * 16;
         _stream = MqttStream(bufferSize);
     }
 
@@ -61,7 +61,8 @@ private:
     final void read() {
         while(connected && !_tcpConnection.empty) {
             _stream.read(this, _tcpConnection.leastSize);
-            _stream.handleMessages(_server, this);
+            while(_stream.hasMessages)
+                MqttFactory.handleMessage(_stream.popNextMessageBytes, _server, this);
         }
     }
 

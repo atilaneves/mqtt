@@ -15,9 +15,13 @@ version(Win32) {
     alias unsigned = ulong;
 }
 
+@safe:
+
 struct MqttStream {
-    this(unsigned bufferSize) {
-        allocate(bufferSize);
+
+    this(int bufferSize) pure nothrow {
+        _buffer = new ubyte[bufferSize];
+        _bytes = _buffer[0..0];
     }
 
     void opOpAssign(string op: "~")(ubyte[] bytes) {
@@ -30,81 +34,58 @@ struct MqttStream {
         read(new Input, bytes.length);
     }
 
-    void read(T)(T input, unsigned size) if(isMqttInput!T) {
-        checkRealloc(size);
-        immutable end = _bytesRead + size;
+    void read(T)(auto ref T input, unsigned size) @trusted if(isMqttInput!T) {
+        resetBuffer;
 
+        immutable end = _bytesRead + size;
         input.read(_buffer[_bytesRead .. end]);
 
-        _bytes = _buffer[_bytesStart .. end];
         _bytesRead += size;
-        updateRemaining();
+        _bytes = _buffer[0 .. _bytesRead];
+
+        updateLastMessageSize;
     }
 
-    void handleMessages(T)(MqttServer!T server, T connection) if(isMqttConnection!T) {
-        while(hasMessages()) handleMessage(server, connection);
+    bool hasMessages() pure nothrow {
+        return _lastMessageSize >= MqttFixedHeader.SIZE && _bytes.length >= _lastMessageSize;
     }
 
-    bool hasMessages() const {
-        return _bytes.length >= _remaining + MqttFixedHeader.SIZE;
+    const(ubyte)[] popNextMessageBytes() {
+        if(!hasMessages) return [];
+
+        auto ret = nextMessageBytes;
+        _bytes = _bytes[ret.length .. $];
+
+        updateLastMessageSize;
+        return ret;
     }
-
-    bool empty() const {
-        return _bytes.length == 0;
-    }
-
-    void handleMessage(T)(MqttServer!T server, T connection) if(isMqttConnection!T) {
-        if(!hasMessages()) return;
-
-        const slice = slice();
-        _bytesStart += slice.length;
-        _bytes = _buffer[_bytesStart .. _bytesRead];
-
-        MqttFactory.handleMessage(slice, server, connection);
-
-        _remaining = 0; //reset
-        updateRemaining();
-    }
-
 
 private:
 
-    ubyte[] _buffer;
-    ubyte[] _bytes;
-    int _remaining;
-    unsigned _bytesRead;
-    unsigned _bytesStart;
+    ubyte[] _buffer; //the underlying storage
+    ubyte[] _bytes; //the current bytes held
+    int _lastMessageSize;
+    int _bytesStart; //the starting position
+    ulong _bytesRead; //what it says
 
-    void allocate(unsigned bufferSize = 128) {
-        enforce(bufferSize > 10, "bufferSize too small");
-        _buffer = new ubyte[bufferSize];
+    void updateLastMessageSize() {
+        _lastMessageSize = nextMessageSize;
     }
 
-    void checkRealloc(unsigned numBytes) {
-        if(!_buffer) allocate();
-
-        immutable limit = (9 * _buffer.length) / 10;
-        if(_bytesRead + numBytes > limit) {
-            resetBuffer;
-        }
+    const(ubyte)[] nextMessageBytes() const {
+        return _bytes[0 .. nextMessageSize];
     }
 
-    void resetBuffer() {
+    int nextMessageSize() const {
+        if(_bytes.length < MqttFixedHeader.SIZE) return 0;
+
+        auto dec = Decerealiser(_bytes);
+        return dec.value!MqttFixedHeader.remaining + MqttFixedHeader.SIZE;
+    }
+
+    void resetBuffer() pure nothrow {
         copy(_bytes, _buffer);
-        _bytesStart = 0;
         _bytesRead = _bytes.length;
-        _bytes = _buffer[_bytesStart .. _bytesRead];
-    }
-
-    void updateRemaining() {
-        if(!_remaining && _bytes.length >= MqttFixedHeader.SIZE) {
-            auto cereal = Decerealiser(slice());
-            _remaining = cereal.value!MqttFixedHeader.remaining;
-        }
-    }
-
-    const(ubyte[]) slice() const {
-        immutable msgSize = _remaining + MqttFixedHeader.SIZE;
-        return  _bytes[0..msgSize];
+        _bytes = _buffer[0 .. _bytesRead];
     }
 }
