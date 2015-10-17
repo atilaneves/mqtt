@@ -129,6 +129,8 @@ struct MqttStream2 {
     }
 
     void read(T)(auto ref T input, unsigned size) if(isMqttInput!T) {
+        resetBuffer;
+
         immutable end = _bytesRead + size;
         input.read(_buffer[_bytesRead .. end]);
 
@@ -138,38 +140,46 @@ struct MqttStream2 {
         updateLastMessageSize;
     }
 
-    bool hasMessages() const pure nothrow {
-        return _bytes.length >= _lastMessageSize;
+    bool hasMessages() pure nothrow {
+        return _lastMessageSize >= MqttFixedHeader.SIZE && _bytes.length >= _lastMessageSize;
     }
 
-    const(ubyte)[][] allMessageBytes() pure nothrow {
-        const(ubyte)[][] result;
-        auto origBytes = _bytes;
-        while(hasMessages) {
-            result ~= nextMessageBytes;
-            _bytes = _bytes[result[$-1].length .. $];
-        }
-        _bytes = origBytes;
-        return result;
+    const(ubyte)[] popNextMessageBytes() {
+        if(!hasMessages) return [];
+
+        auto ret = nextMessageBytes;
+        _bytes = _bytes[ret.length .. $];
+
+        updateLastMessageSize;
+        return ret;
     }
 
-//private:
+private:
 
     ubyte[] _buffer; //the underlying storage
     ubyte[] _bytes; //the current bytes held
     int _lastMessageSize;
     int _bytesStart; //the starting position
-    int _bytesRead; //what it says
+    ulong _bytesRead; //what it says
 
     void updateLastMessageSize() {
-        auto next = nextMessageBytes;
-        if(!_lastMessageSize && nextMessageBytes.length >= MqttFixedHeader.SIZE) {
-            auto dec = Decerealiser(next);
-            _lastMessageSize = dec.value!MqttFixedHeader.remaining + MqttFixedHeader.SIZE;
-        }
+        _lastMessageSize = nextMessageSize;
     }
 
-    const(ubyte)[] nextMessageBytes() const pure nothrow {
-        return _bytes;
+    const(ubyte)[] nextMessageBytes() const {
+        return _bytes[0 .. nextMessageSize];
+    }
+
+    int nextMessageSize() const {
+        if(_bytes.length < MqttFixedHeader.SIZE) return 0;
+
+        auto dec = Decerealiser(_bytes);
+        return dec.value!MqttFixedHeader.remaining + MqttFixedHeader.SIZE;
+    }
+
+    void resetBuffer() pure nothrow {
+        copy(_bytes, _buffer);
+        _bytesRead = _bytes.length;
+        _bytes = _buffer[0 .. _bytesRead];
     }
 }
