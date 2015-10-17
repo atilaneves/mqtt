@@ -10,7 +10,13 @@ import std.algorithm;
 import std.array;
 
 
-enum isMqttConnection(T) = isMqttSubscriber!T && is(typeof(() {
+enum isMqttInput(T) = is(typeof(() {
+    ubyte[] bytes;
+    T.init.read(bytes);
+}));
+
+
+enum isMqttConnection(T) = isMqttSubscriber!T && isMqttInput!T && is(typeof(() {
     ubyte[] bytes;
     auto t = T.init;
     t.read(bytes);
@@ -74,6 +80,7 @@ private:
 interface MqttInput {
     void read(ubyte[] bytes);
 }
+
 
 class MqttConnection: MqttInput {
     void newMessage(in string topic, in ubyte[] payload) {
