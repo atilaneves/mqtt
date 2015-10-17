@@ -80,3 +80,27 @@ void testTwoMqttInOnePacket() {
    stream.popNextMessageBytes.shouldEqual((bytes1 ~ bytes2)[0 .. $-2]);
    stream.popNextMessageBytes.shouldEqual([0xe0, 0x00]);
 }
+
+
+void testBug1() {
+    auto stream = MqttStream2(128);
+
+    ubyte[] msg = [48, 20, 0, 16, 112, 105, 110, 103, 116, 101, 115, 116, 47, 48, 47, 114, 101, 112, 108, 121, 111, 107];
+    ubyte[] bytes1 = msg ~ msg[0..$-4];
+    stream ~= bytes1;
+    stream.popNextMessageBytes.shouldEqual(msg);
+}
+
+
+void testBug2() {
+    auto stream = MqttStream2(128);
+
+    ubyte[] bytes1 = [48, 26, 0, 18, 112, 105, 110, 103, 116, 101, 115, 116, 47, 48, 47, 114, 101, 113, 117, 101, 115, 116];
+    stream ~= bytes1;
+    stream.hasMessages.shouldBeFalse;
+
+    ubyte[] bytes2 = [112, 105, 110, 103, 32, 48];
+    stream ~= bytes2;
+    stream.hasMessages.shouldBeTrue;
+    stream.popNextMessageBytes.shouldEqual(bytes1 ~ bytes2);
+}
