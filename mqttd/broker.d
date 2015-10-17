@@ -40,8 +40,16 @@ public:
 
     alias Subscriber = RefType!T;
 
+    void subscribe(U)(ref U subscriber, in string[] topics) if(is(U == struct) && isMqttSubscriber!U) {
+        subscribe(&subscriber, topics);
+    }
+
     void subscribe(Subscriber subscriber, in string[] topics) {
         subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a, 0)).array);
+    }
+
+    void subscribe(U)(ref U subscriber, in MqttSubscribe.Topic[] topics) if(is(U == struct) && isMqttSubscriber!U) {
+        subscribe(&subscriber, topics);
     }
 
     void subscribe(Subscriber subscriber, in MqttSubscribe.Topic[] topics) {
@@ -51,8 +59,16 @@ public:
         }
     }
 
+    void unsubscribe(U)(ref U subscriber) if(is(U == struct) && isMqttSubscriber!U) {
+        unsubscribe(&subscriber);
+    }
+
     void unsubscribe(Subscriber subscriber) {
         _subscriptions.removeSubscription(subscriber, _subscriptions._nodes);
+    }
+
+    void unsubscribe(U)(ref U subscriber, in string[] topics) if(is(U == struct) && isMqttSubscriber!U) {
+        _subscriptions.removeSubscription(&subscriber, topics, _subscriptions._nodes);
     }
 
     void unsubscribe(Subscriber subscriber, in string[] topics) {

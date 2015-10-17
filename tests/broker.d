@@ -15,7 +15,7 @@ struct TestMqttSubscriber {
 void testSubscribe() {
     auto broker = MqttBroker!TestMqttSubscriber();
 
-    auto subscriber = new TestMqttSubscriber();
+    auto subscriber = TestMqttSubscriber();
     broker.publish("topics/foo", "my foo is foo");
     shouldEqual(subscriber.messages, []);
 
@@ -33,7 +33,7 @@ void testSubscribe() {
 
 void testUnsubscribeAll() {
     auto broker = MqttBroker!TestMqttSubscriber();
-    auto subscriber = new TestMqttSubscriber();
+    auto subscriber = TestMqttSubscriber();
 
     broker.subscribe(subscriber, ["topics/foo"]);
     broker.publish("topics/foo", "my foo is foo");
@@ -49,7 +49,7 @@ void testUnsubscribeAll() {
 
 void testUnsubscribeOne() {
     auto broker = MqttBroker!TestMqttSubscriber();
-    auto subscriber = new TestMqttSubscriber();
+    auto subscriber = TestMqttSubscriber();
 
     broker.subscribe(subscriber, ["topics/foo", "topics/bar"]);
     broker.publish("topics/foo", "my foo is foo");
@@ -67,7 +67,7 @@ void testUnsubscribeOne() {
 
 private void checkMatches(in string pubTopic, in string subTopic, bool matches) {
     auto broker = MqttBroker!TestMqttSubscriber();
-    auto subscriber = new TestMqttSubscriber();
+    auto subscriber = TestMqttSubscriber();
 
     broker.subscribe(subscriber, [subTopic]);
     broker.publish(pubTopic, "payload");
@@ -99,14 +99,14 @@ void testWildCards() {
 
 void testSubscribeWithWildCards() {
     auto broker = MqttBroker!TestMqttSubscriber();
-    auto subscriber1 = new TestMqttSubscriber();
+    auto subscriber1 = TestMqttSubscriber();
 
     broker.subscribe(subscriber1, ["topics/foo/+"]);
     broker.publish("topics/foo/bar", "3");
     broker.publish("topics/bar/baz/boo", "4"); //shouldn't get this one
     shouldEqual(subscriber1.messages, ["3"]);
 
-    auto subscriber2 = new TestMqttSubscriber();
+    auto subscriber2 = TestMqttSubscriber();
     broker.subscribe(subscriber2, ["topics/foo/#"]);
     broker.publish("topics/foo/bar", "3");
     broker.publish("topics/bar/baz/boo", "4");
@@ -114,9 +114,9 @@ void testSubscribeWithWildCards() {
     shouldEqual(subscriber1.messages, ["3", "3"]);
     shouldEqual(subscriber2.messages, ["3"]);
 
-    auto subscriber3 = new TestMqttSubscriber();
+    auto subscriber3 = TestMqttSubscriber();
     broker.subscribe(subscriber3, ["topics/+/bar"]);
-    auto subscriber4 = new TestMqttSubscriber();
+    auto subscriber4 = TestMqttSubscriber();
     broker.subscribe(subscriber4, ["topics/#"]);
 
     broker.publish("topics/foo/bar", "3");
