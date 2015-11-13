@@ -7,4 +7,4 @@ install:
 script:
   - dub test
   - dub build
-  - cucumber
+  - cucumber --tags ~@wip
