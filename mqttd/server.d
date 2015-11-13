@@ -24,6 +24,25 @@ enum isMqttConnection(T) = isMqttSubscriber!T && isMqttInput!T && is(typeof(() {
     t.disconnect();
 }));
 
+enum isMqttServer(S, C) = isMqttConnection!C && is(typeof(() {
+    auto server = S.init;
+    auto connection = C.init;
+    server.newConnection(connection, MqttConnect());
+    ushort msgId;
+    string[] topics;
+    server.subscribe(connection, msgId, topics);
+    MqttSubscribe.Topic[] topics2;
+    server.subscribe(connection, msgId, topics);
+    server.unsubscribe(connection);
+    server.unsubscribe(connection, msgId, topics);
+    string topic;
+    ubyte[] payload;
+    server.publish(topic, payload);
+    server.ping(connection);
+    server.useCache = false;
+}));
+
+
 class CMqttServer(T) if(isMqttConnection!T) {
 
     alias Connection = RefType!T;
@@ -77,6 +96,9 @@ class CMqttServer(T) if(isMqttConnection!T) {
 private:
 
     MqttBroker!T _broker;
+
+
+    static assert(isMqttServer!(CMqttServer, T));
 }
 
 
