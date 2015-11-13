@@ -9,7 +9,7 @@ import vibe.d;
 import std.stdio;
 
 
-class MqttTcpConnection {
+class CMqttTcpConnection {
     mixin MqttConnection;
 
     this(MqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
@@ -66,5 +66,5 @@ private:
         }
     }
 
-    static assert(isMqttConnection!MqttTcpConnection);
+    static assert(isMqttConnection!CMqttTcpConnection);
 }
