@@ -12,7 +12,7 @@ import std.stdio;
 class CMqttTcpConnection {
     mixin MqttConnection;
 
-    this(MqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
+    this(CMqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
         _server = server;
         _tcpConnection = tcpConnection;
         _connected = true;
@@ -53,7 +53,7 @@ class CMqttTcpConnection {
 
 private:
 
-    MqttServer!(typeof(this)) _server;
+    CMqttServer!(typeof(this)) _server;
     TCPConnection _tcpConnection;
     bool _connected;
     MqttStream _stream;

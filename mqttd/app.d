@@ -3,7 +3,7 @@ import mqttd.server;
 import mqttd.tcp;
 import std.stdio;
 
-private __gshared MqttServer!(CMqttTcpConnection) gServer;
+private __gshared CMqttServer!(CMqttTcpConnection) gServer;
 
 shared static this() {
     // debug {

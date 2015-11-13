@@ -24,7 +24,7 @@ enum isMqttConnection(T) = isMqttSubscriber!T && isMqttInput!T && is(typeof(() {
     t.disconnect();
 }));
 
-class MqttServer(T) if(isMqttConnection!T) {
+class CMqttServer(T) if(isMqttConnection!T) {
 
     alias Connection = RefType!T;
 

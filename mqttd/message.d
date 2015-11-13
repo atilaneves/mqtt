@@ -129,7 +129,7 @@ public:
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
-    void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
+    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.newConnection(connection, this);
     }
 
@@ -229,7 +229,7 @@ public:
 
     mixin assertHasPostBlit!MqttPublish;
 
-    void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
+    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.publish(topic, payload);
     }
 
@@ -254,7 +254,7 @@ public:
         this.header = header;
     }
 
-    void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
+    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.subscribe(connection, msgId, topics.dup);
     }
 
@@ -291,7 +291,7 @@ struct MqttUnsubscribe {
         this.header = header;
     }
 
-    void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
+    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.unsubscribe(connection, msgId, topics);
     }
 
@@ -316,7 +316,7 @@ struct MqttUnsuback {
 
 struct MqttDisconnect {
     this(MqttFixedHeader) {}
-    void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
+    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.unsubscribe(connection);
         connection.disconnect();
     }
@@ -324,7 +324,7 @@ struct MqttDisconnect {
 
 struct MqttPingReq {
     this(MqttFixedHeader = MqttFixedHeader()) {}
-    void handle(T)(MqttServer!T server, T connection) const if(isMqttConnection!T) {
+    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.ping(connection);
     }
 }
