@@ -20,7 +20,7 @@ void accept(TCPConnection tcpConnection) {
         stderr.writeln("Client didn't send the initial request in a timely manner. Closing connection.");
     }
 
-    auto mqttConnection = new CMqttTcpConnection(gServer, tcpConnection);
+    auto mqttConnection = new gServer.Connection(gServer, tcpConnection);
     mqttConnection.run();
     if(tcpConnection.connected) tcpConnection.close();
 }

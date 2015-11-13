@@ -45,7 +45,7 @@ enum isMqttServer(S, C) = isMqttConnection!C && is(typeof(() {
 
 class CMqttServer(T) if(isMqttConnection!T) {
 
-    alias Connection = RefType!T;
+    alias Connection = T;
 
     final void newConnection(Connection connection, in MqttConnect connect) {
         auto code = MqttConnack.Code.ACCEPTED;
