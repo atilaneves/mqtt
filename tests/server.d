@@ -167,6 +167,16 @@ void testSubscribeWithMessage() {
 }
 
 
+
+void testPingWithMessage() {
+    auto server = MqttServer!NewTestMqttConnection();
+    auto connection = NewTestMqttConnection();
+
+    server.newMessage(connection, connectionMsgBytes);
+    server.newMessage(connection, cast(ubyte[])[0xc0, 0x00]); //ping request
+    const pingResp = connection.lastMsg!MqttPingResp; //shouldn't throw
+}
+
 ////////////////////////////////////////////////////////////////////////////////old
 
 
@@ -326,24 +336,4 @@ void testSubscribeWildCard() {
     foreach(i, c; wlds) {
         shouldEqual(c.payloads.length, numMessages * 2);
     }
-}
-
-
-void testPing() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-
-    server.ping(connection);
-    const pingResp = connection.lastMsg!MqttPingResp;
-}
-
-
-void testPingWithMessage() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-
-    MqttFactory.handleMessage([0xc0, 0x00], server, connection); //ping request
-    const pingResp = connection.lastMsg!MqttPingResp;
 }

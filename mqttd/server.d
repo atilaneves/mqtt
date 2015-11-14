@@ -42,6 +42,10 @@ struct MqttServer(S) if(isNewMqttSubscriber!S) {
                 _broker.publish(msg.topic, bytes);
                 break;
 
+            case PINGREQ:
+                MqttFixedHeader(MqttType.PINGRESP).cerealise!(b => connection.newMessage(b));
+                break;
+
             default:
                 throw new Exception(text("Don't know how to handle message of type ", fixedHeader.type));
         }
