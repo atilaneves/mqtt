@@ -73,6 +73,10 @@ struct MqttStream {
         while(hasMessages) server.newMessage(connection, popNextMessageBytes);
     }
 
+    auto bufferSize() const pure nothrow @safe {
+        return _buffer.length;
+    }
+
 private:
 
     ubyte[] _buffer; //the underlying storage

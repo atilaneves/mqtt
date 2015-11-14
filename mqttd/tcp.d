@@ -6,14 +6,14 @@ import mqttd.stream;
 import mqttd.message;
 import vibe.d;
 import std.stdio;
-
+import std.conv;
 
 struct MqttTcpConnection {
 
     this(TCPConnection tcpConnection) {
         _tcpConnection = tcpConnection;
         _connected = true;
-        enum bufferSize = 1024 * 16;
+        enum bufferSize = 1024 * 512;
         _stream = MqttStream(bufferSize);
     }
 
@@ -61,6 +61,11 @@ private:
 
     void read(ref MqttServer!MqttTcpConnection server) {
         while(connected && !_tcpConnection.empty) {
+            if(_tcpConnection.leastSize > _stream.bufferSize) {
+                throw new Exception(
+                    text("Too many bytes (", _tcpConnection.leastSize,
+                         " for puny stream buffer (", _stream.bufferSize, ")"));
+            }
             _stream.read(this, _tcpConnection.leastSize);
             _stream.handleMessages(server, this);
         }
