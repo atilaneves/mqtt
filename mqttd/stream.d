@@ -16,7 +16,15 @@ version(Win32) {
     alias unsigned = ulong;
 }
 
+
+enum isMqttInput(T) = is(typeof(() {
+    ubyte[] bytes;
+    auto t = T.init;
+    t.read(bytes);
+}));
+
 @safe:
+
 
 struct MqttStream {
 
@@ -60,11 +68,6 @@ struct MqttStream {
 
         updateLastMessageSize;
         return ret;
-    }
-
-    void handleMessages(T)(CMqttServer!T server, T connection) @trusted if(isMqttConnection!T) {
-        while(hasMessages)
-            MqttFactory.handleMessage(popNextMessageBytes, server, connection);
     }
 
     void handleMessages(T)(ref MqttServer!T server, ref T connection) @trusted if(isNewMqttSubscriber!T) {

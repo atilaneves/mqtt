@@ -2,15 +2,15 @@ import vibe.d;
 import mqttd.server;
 import mqttd.tcp;
 import std.stdio;
+import std.typecons;
 
-private __gshared CMqttServer!(CMqttTcpConnection) gServer;
+private __gshared MqttServer!(MqttTcpConnection) gServer;
 
 shared static this() {
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
-    gServer = new typeof(gServer);
-    gServer.useCache = true;
+    gServer = typeof(gServer)(Yes.useCache);
     listenTCP_s(1883, &accept);
 }
 
@@ -20,7 +20,7 @@ void accept(TCPConnection tcpConnection) {
         stderr.writeln("Client didn't send the initial request in a timely manner. Closing connection.");
     }
 
-    auto mqttConnection = new gServer.Connection(gServer, tcpConnection);
-    mqttConnection.run();
+    auto mqttConnection = MqttTcpConnection(tcpConnection);
+    mqttConnection.run(gServer);
     if(tcpConnection.connected) tcpConnection.close();
 }
