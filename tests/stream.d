@@ -142,3 +142,40 @@ void testBug2() {
     stream.hasMessages.shouldBeTrue;
     stream.popNextMessageBytes.shouldEqual(bytes1 ~ bytes2);
 }
+
+
+void testPublishInTwoMessages() {
+    auto server = MqttServer!TestMqttConnection();
+    auto connection = TestMqttConnection();
+    auto stream = MqttStream(128);
+
+    ubyte[] subBytes = [
+        0x8b, 0x13, //fixed header
+        0x00, 0x21, //message ID
+        0x00, 0x05, 'f', 'i', 'r', 's', 't',
+        0x01, //qos
+        0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',
+        0x02, //qos
+        ];
+
+    stream ~= subBytes;
+    stream.handleMessages(server, connection);
+
+    ubyte[] firstPart = [
+        0x3c, 0x0d, //fixed header
+        0x00, 0x05, 'f', 'i', 'r', 's', 't',//topic name
+        ];
+
+    stream ~= firstPart;
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldBeEmpty;
+
+    ubyte[] sndPart = [
+        0x00, 0x21, //message ID
+        1, 2, 3, 4, //payload
+        ];
+
+    stream ~= sndPart;
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldEqual([[1, 2, 3, 4]]);
+}
