@@ -2,6 +2,8 @@ module tests.broker;
 
 import unit_threaded;
 import mqttd.broker;
+import mqttd.message;
+import std.algorithm;
 
 
 struct TestMqttSubscriber {
@@ -23,22 +25,23 @@ struct NewTestMqttSubscriber {
     static assert(isNewMqttSubscriber!NewTestMqttSubscriber);
 }
 
-void testSubscribe() {
-    auto broker = MqttBroker!TestMqttSubscriber();
 
-    auto subscriber = TestMqttSubscriber();
-    broker.publish("topics/foo", "my foo is foo");
+void testSubscribe() {
+    auto broker = NewMqttBroker!NewTestMqttSubscriber();
+
+    auto subscriber = NewTestMqttSubscriber();
+    broker.publish("topics/foo", [2, 4, 6]);
     shouldEqual(subscriber.messages, []);
 
     broker.subscribe(subscriber, ["topics/foo"]);
-    broker.publish("topics/foo", "my foo is foo");
-    broker.publish("topics/bar", "my bar is bar");
-    shouldEqual(subscriber.messages, ["my foo is foo"]);
+    broker.publish("topics/foo", [2, 4, 6]);
+    broker.publish("topics/bar", [1, 3, 5, 7]);
+    shouldEqual(subscriber.messages, [[2, 4, 6]]);
 
     broker.subscribe(subscriber, ["topics/bar"]);
-    broker.publish("topics/foo", "my foo is foo");
-    broker.publish("topics/bar", "my bar is bar");
-    shouldEqual(subscriber.messages, ["my foo is foo", "my foo is foo", "my bar is bar"]);
+    broker.publish("topics/foo", [2, 4, 6]);
+    broker.publish("topics/bar", [1, 3, 5, 7]);
+    shouldEqual(subscriber.messages, [[2, 4, 6], [2, 4, 6], [1, 3, 5, 7]]);
 }
 
 

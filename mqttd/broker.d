@@ -10,6 +10,30 @@ import std.range;
 
 enum isTopicRange(R) = isForwardRange!R;
 
+enum isNewMqttSubscriber(T) = is(typeof((){
+    const(ubyte)[] bytes;
+    auto sub = T.init;
+    sub.newMessage(bytes);
+}));
+
+struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
+
+    void subscribe(R)(ref S subscriber, R topics)
+        if(isTopicRange!R && is(ElementType!R == string))
+    {
+        subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a.idup, 0)));
+    }
+
+    void subscribe(R)(ref S subscriber, R topics)
+        if(isTopicRange!R && is(ElementType!R == MqttSubscribe.Topic))
+    {
+
+    }
+
+    void publish(in string topic, in ubyte[] payload) {
+    }
+}
+
 
 enum isMqttSubscriber(T) = is(typeof((){
     const(ubyte)[] bytes;
@@ -17,11 +41,6 @@ enum isMqttSubscriber(T) = is(typeof((){
     T.init.newMessage("topic", bytes);
 }));
 
-enum isNewMqttSubscriber(T) = is(typeof((){
-    const(ubyte)[] bytes;
-    auto sub = T.init;
-    sub.newMessage(bytes);
-}));
 
 
 template RefType(T) {
