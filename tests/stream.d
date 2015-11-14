@@ -3,21 +3,51 @@ module tests.stream;
 import unit_threaded;
 import mqttd.stream;
 import mqttd.message;
+import mqttd.server;
 
 
+class TestMqttConnection {
+    mixin MqttConnection;
+
+    alias Payload = ubyte[];
+
+    void newMessage(in string topic, in ubyte[] payload) {
+        import std.stdio;
+
+        writeln("newMessage with payload ", payload);
+        payloads ~= payload;
+    }
+
+    void write(in ubyte[] bytes) {
+    }
+
+    void disconnect() {  }
+
+    const(Payload)[] payloads;
+
+    static assert(isMqttConnection!TestMqttConnection);
+}
+
+
+@HiddenTest
 void testMqttInTwoPackets() {
+    auto server = new CMqttServer!TestMqttConnection();
+    auto connection = new TestMqttConnection;
+    auto stream = MqttStream(128);
+
     ubyte[] bytes1 = [ 0x3c, 0x0f, //fixed header
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
-                       'b', 'o', 'r' ]; //1st part of payload
-    auto stream = MqttStream(128);
-    stream ~= bytes1;
-    stream.hasMessages.shouldBeFalse;
+                       1, 2, 3 ]; //1st part of payload
 
-    ubyte[] bytes2 = [ 'o', 'r', 'o', 'o', 'n']; //2nd part of payload
+    stream ~= bytes1;
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldBeEmpty;
+
+    ubyte[] bytes2 = [ 4, 5, 6, 7, 8]; //2nd part of payload
     stream ~= bytes2;
-    stream.hasMessages.shouldBeTrue;
-    stream.popNextMessageBytes.shouldEqual(bytes1 ~ bytes2);
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldEqual([[1, 2, 3, 4, 5, 7, 8]]);
 }
 
 

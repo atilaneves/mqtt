@@ -60,6 +60,12 @@ struct MqttStream {
         return ret;
     }
 
+    void handleMessages(T)(CMqttServer!T server, T connection) @trusted if(isMqttConnection!T) {
+        while(hasMessages)
+            MqttFactory.handleMessage(popNextMessageBytes, server, connection);
+    }
+
+
 private:
 
     ubyte[] _buffer; //the underlying storage
