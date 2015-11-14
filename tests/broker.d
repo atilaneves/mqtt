@@ -8,6 +8,8 @@ import std.algorithm;
 struct TestMqttSubscriber {
     alias Payload = ubyte[];
     void newMessage(in ubyte[] bytes) {
+        import std.stdio;
+        writeln("new message: ", bytes);
         messages ~= bytes;
     }
 

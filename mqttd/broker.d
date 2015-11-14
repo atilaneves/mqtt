@@ -9,7 +9,9 @@ import std.range;
 import std.traits;
 
 
-enum isTopicRange(R) = isForwardRange!R;
+enum isTopicRange(R) = isForwardRange!R && is(Unqual!(ElementType!R) == string);
+
+enum isInputRangeOf(R, T) = isInputRange!R && is(Unqual!(ElementType!R) == T);
 
 enum isNewMqttSubscriber(T) = is(typeof((){
     const(ubyte)[] bytes;
@@ -28,7 +30,11 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
     void subscribe(R)(ref S subscriber, R topics)
         if(isInputRange!R && is(ElementType!R == MqttSubscribe.Topic))
     {
-
+        foreach(topic; topics) {
+            auto subParts = topic.topic.splitter("/");
+            auto node = addOrFindNode(&_tree, subParts);
+            node.leaves ~= NewSubscription!(S)(subscriber, topic);
+        }
     }
 
     void unsubscribe(ref S subscriber) {
@@ -40,6 +46,8 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
     }
 
     void publish(in string topic, in ubyte[] payload) {
+        auto pubParts = topic.splitter("/");
+        publishImpl(&_tree, pubParts, payload);
     }
 
 private:
@@ -50,10 +58,55 @@ private:
     }
 
     Node _tree;
+
+    Node* addOrFindNode(R)(Node* tree, R parts) if(isInputRange!R && is(ElementType!R == string)) {
+        if(parts.empty) return tree;
+
+        //create if not already here
+        const part = parts.front;
+        if(part !in tree.children) tree.children[part] = new Node;
+
+        parts.popFront;
+        return addOrFindNode(tree.children[part], parts);
+    }
+
+    void publishImpl(R1, R2)(Node* tree, R1 pubParts, R2 bytes)
+        if(isTopicRange!R1 && isInputRangeOf!(R2, ubyte))
+    {
+        if(pubParts.empty) return;
+
+        foreach(part; only(pubParts.front, "#", "+")) {
+            if(part in tree.children) {
+                auto node = tree.children[part];
+                immutable hasOneElement = hasOneElement(pubParts);
+                if(hasOneElement && "#" in node.children) {
+                    //So that "finance/#" matches "finance"
+                    publishNode(node.children["#"], bytes);
+                }
+                publishNode(node, bytes);
+                auto r = pubParts.save;
+                r.popFront;
+                publishImpl(node, r, bytes);
+            }
+        }
+    }
+
+    void publishNode(R)(Node* node, R bytes) if(isInputRangeOf!(R, ubyte)) {
+        foreach(subscription; node.leaves) {
+            subscription.newMessage(bytes);
+        }
+    }
+
+    bool hasOneElement(R)(R range) if(isTopicRange!R) {
+        auto r = range.save;
+        r.popFront;
+        return r.empty;
+    }
 }
 
-private struct NewSubscription(T) if(isNewMqttSubscriber!T) {
-    this(ref T subscriber, in MqttSubscribe.Topic topic) {
+
+private struct NewSubscription(S) if(isNewMqttSubscriber!S) {
+    this(ref S subscriber, in MqttSubscribe.Topic topic) {
         _subscriber = &subscriber;
         _topic = topic.topic.idup;
         _qos = topic.qos;
@@ -63,25 +116,13 @@ private struct NewSubscription(T) if(isNewMqttSubscriber!T) {
         _subscriber.newMessage(bytes);
     }
 
-    // bool isSubscriber(ref T subscriber) const {
-    //     return _subscriber == &subscriber;
-    // }
-
-    // bool isSubscription(T subscriber, in string[] topics) const {
-    //     return isSubscriber(subscriber) && isTopic(topics);
-    // }
-
-    // bool isTopic(in string[] topics) const {
-    //     return topics.canFind(_topic);
-    // }
-
-private:
-    T* _subscriber;
+    S* _subscriber;
     string _topic;
     ubyte _qos;
 }
 
 
+//////////////////////////////////////////////////////////////////
 enum isMqttSubscriber(T) = is(typeof((){
     const(ubyte)[] bytes;
     //T.init.newMessage(bytes);
