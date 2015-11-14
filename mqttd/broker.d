@@ -6,6 +6,7 @@ import std.algorithm;
 import std.array;
 import std.typecons;
 import std.range;
+import std.traits;
 
 
 enum isTopicRange(R) = isForwardRange!R;
@@ -19,19 +20,65 @@ enum isNewMqttSubscriber(T) = is(typeof((){
 struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
 
     void subscribe(R)(ref S subscriber, R topics)
-        if(isTopicRange!R && is(ElementType!R == string))
+        if(isInputRange!R && is(Unqual!(ElementType!R) == string))
     {
         subscribe(subscriber, topics.map!(a => MqttSubscribe.Topic(a.idup, 0)));
     }
 
     void subscribe(R)(ref S subscriber, R topics)
-        if(isTopicRange!R && is(ElementType!R == MqttSubscribe.Topic))
+        if(isInputRange!R && is(ElementType!R == MqttSubscribe.Topic))
     {
 
     }
 
+    void unsubscribe(ref S subscriber) {
+    }
+
+    void unsubscribe(R)(ref S subscriber, R topics)
+        if(isInputRange!R && is(ElementType!R == string))
+    {
+    }
+
     void publish(in string topic, in ubyte[] payload) {
     }
+
+private:
+
+    static struct Node {
+        Node*[string] children;
+        NewSubscription!S[] leaves;
+    }
+
+    Node _tree;
+}
+
+private struct NewSubscription(T) if(isNewMqttSubscriber!T) {
+    this(ref T subscriber, in MqttSubscribe.Topic topic) {
+        _subscriber = &subscriber;
+        _topic = topic.topic.idup;
+        _qos = topic.qos;
+    }
+
+    void newMessage(in ubyte[] bytes) {
+        _subscriber.newMessage(bytes);
+    }
+
+    // bool isSubscriber(ref T subscriber) const {
+    //     return _subscriber == &subscriber;
+    // }
+
+    // bool isSubscription(T subscriber, in string[] topics) const {
+    //     return isSubscriber(subscriber) && isTopic(topics);
+    // }
+
+    // bool isTopic(in string[] topics) const {
+    //     return topics.canFind(_topic);
+    // }
+
+private:
+    T* _subscriber;
+    string _topic;
+    ubyte _qos;
 }
 
 
