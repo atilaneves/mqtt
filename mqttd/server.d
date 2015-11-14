@@ -12,13 +12,18 @@ import std.conv;
 import std.typecons;
 
 
-struct MqttServer(S) if(isNewMqttSubscriber!S) {
+enum isNewMqttConnection(C) = isNewMqttSubscriber!C && is(typeof(() {
+    auto c = C.init;
+    c.disconnect();
+}));
+
+struct MqttServer(C) if(isNewMqttConnection!C) {
 
     this(Flag!"useCache" useCache = No.useCache) {
-        _broker = NewMqttBroker!S(useCache);
+        _broker = NewMqttBroker!C(useCache);
     }
 
-    void newMessage(R)(ref S connection, R bytes) if(isInputRangeOf!(R, ubyte)) {
+    void newMessage(R)(ref C connection, R bytes) if(isInputRangeOf!(R, ubyte)) {
         auto dec = Decerealiser(bytes);
         immutable fixedHeader = dec.value!MqttFixedHeader;
         dec.reset(); //to be used deserialising
@@ -56,18 +61,20 @@ struct MqttServer(S) if(isNewMqttSubscriber!S) {
                 MqttFixedHeader(MqttType.PINGRESP).cerealise!(b => connection.newMessage(b));
                 break;
 
+            case DISCONNECT:
+                _broker.unsubscribe(connection);
+                connection.disconnect;
+                break;
+
             default:
                 throw new Exception(text("Don't know how to handle message of type ", fixedHeader.type));
         }
     }
 
-    void connectionClosed(ref S connection) {
-        _broker.unsubscribe(connection);
-    }
 
 private:
 
-    NewMqttBroker!S _broker;
+    NewMqttBroker!C _broker;
 }
 
 //////////////////////////////////////////////////////////////////////old

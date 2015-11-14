@@ -23,12 +23,18 @@ struct TestMqttConnection {
                 break;
 
             default:
-                break;
+                messages ~= payload;
         }
     }
 
+    void disconnect() {
+        connected = false;
+    }
+
     alias Payload = ubyte[];
-    Payload[] payloads;
+    const(Payload)[] payloads;
+    const(Payload)[] messages;
+    bool connected = true;
 
     static assert(isNewMqttSubscriber!TestMqttConnection);
 }
@@ -62,23 +68,31 @@ void testMqttInTwoPackets() {
 
 
 void testTwoMqttInThreePackets() {
+    auto server = MqttServer!TestMqttConnection();
+    auto connection = TestMqttConnection();
+    auto stream = MqttStream(128);
+
+    server.subscribe(connection, 33, ["top"]);
+
     ubyte[] bytes1 = [ 0x3c, 0x0f, //fixed header
                        0x00, 0x03, 't', 'o', 'p', //topic name
                        0x00, 0x21, //message ID
-                       'a', 'b', 'c' ]; //1st part of payload
-    auto stream = MqttStream(128);
+                       1, 2, 3, ]; //1st part of payload
+
     stream ~= bytes1;
-    shouldBeFalse(stream.hasMessages());
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldBeEmpty;
 
-    ubyte[] bytes2 = [ 'd', 'e', 'f', 'g', 'h']; //2nd part of payload
+    ubyte[] bytes2 = [ 4, 5, 6, 7, 8]; //2nd part of payload
     stream ~= bytes2;
-    shouldBeTrue(stream.hasMessages());
-    stream.popNextMessageBytes.shouldEqual(bytes1 ~ bytes2);
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldEqual([[1, 2, 3, 4, 5, 6, 7, 8]]);
 
-    ubyte[] bytes3 = [0xe0, 0x00];
+    ubyte[] bytes3 = [0xe0, 0x00]; //disconnect
     stream ~= bytes3;
-    stream.hasMessages.shouldBeTrue;
-    stream.popNextMessageBytes.shouldEqual(bytes3);
+    stream.handleMessages(server, connection);
+    connection.payloads.shouldEqual([[1, 2, 3, 4, 5, 6, 7, 8]]);
+    connection.connected.shouldBeFalse;
 }
 
 

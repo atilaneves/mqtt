@@ -67,7 +67,7 @@ struct MqttStream {
             MqttFactory.handleMessage(popNextMessageBytes, server, connection);
     }
 
-    void handleMessages(T)(MqttServer!T server, T connection) @trusted if(isNewMqttSubscriber!T) {
+    void handleMessages(T)(ref MqttServer!T server, ref T connection) @trusted if(isNewMqttSubscriber!T) {
         while(hasMessages) server.newMessage(connection, popNextMessageBytes);
     }
 

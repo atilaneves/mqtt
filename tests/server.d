@@ -32,6 +32,7 @@ struct TestMqttConnection {
         switch(fixedHeader.type) with(MqttType) {
             case CONNACK:
                 code = dec.value!MqttConnack.code;
+                if(code == MqttConnack.Code.ACCEPTED) connected = true;
                 break;
             case PUBLISH:
                 auto msg = dec.value!MqttPublish;
@@ -71,8 +72,10 @@ struct TestMqttConnection {
 void testConnect() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
+    connection.connected.shouldBeFalse;
     server.newMessage(connection, connectionMsgBytes);
     connection.code.shouldEqual(MqttConnack.Code.ACCEPTED);
+    connection.connected.shouldBeTrue;
 }
 
 void testConnectBigId() {
@@ -94,19 +97,9 @@ void testConnectBigId() {
     server.newMessage(connection, bytes);
     connection.connect.isBadClientId.shouldBeTrue;
     connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
+    connection.connected.shouldBeFalse;
 }
 
-void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in ubyte[] payload) if(isNewMqttSubscriber!S) {
-    MqttPublish(topic, payload).cerealise!(b => server.newMessage(connection, b));
-}
-
-void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
-    MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
-}
-
-void unsubscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
-    MqttUnsubscribe(msgId, topics).cerealise!(b => server.newMessage(connection, b));
-}
 
 void testConnectSmallId() {
    auto server = MqttServer!TestMqttConnection();
@@ -126,13 +119,28 @@ void testConnectSmallId() {
     server.newMessage(connection, bytes);
     connection.connect.isBadClientId.shouldBeTrue;
     connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
+    connection.connected.shouldBeFalse;
 }
+
+void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in ubyte[] payload) if(isNewMqttSubscriber!S) {
+    MqttPublish(topic, payload).cerealise!(b => server.newMessage(connection, b));
+}
+
+void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+    MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
+}
+
+void unsubscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+    MqttUnsubscribe(msgId, topics).cerealise!(b => server.newMessage(connection, b));
+}
+
 
 void testSubscribeWithMessage() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
 
     server.newMessage(connection, connectionMsgBytes);
+    connection.connected.shouldBeTrue;
 
     server.publish(connection, "foo/bar/baz", [1, 2, 3, 4, 5, 6]);
     shouldEqual(connection.payloads, []);
@@ -255,11 +263,11 @@ void testUnsubscribeAll() {
                       0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
         ];
 
-    server.connectionClosed(connection);
+    server.newMessage(connection, cast(ubyte[])[0xe0, 0]);
 
     server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
     server.publish(connection, "foo/boogagoo", [9, 8, 7]);
-    shouldEqual(connection.payloads, [[1, 2, 3, 4]]); //shouldn't have changed
+    shouldEqual(connection.payloads, [[1, 2, 3, 4]]); //shouldn't have changed, disconnected
 }
 
 
@@ -303,4 +311,17 @@ void testSubscribeWildCard() {
 
     foreach(w; wlds)
         shouldEqual(w.payloads.length, numMessages * 2);
+}
+
+
+void testDisconnect() {
+    auto server = MqttServer!TestMqttConnection();
+    auto connection = TestMqttConnection();
+
+    connection.connected.shouldBeFalse;
+    server.newMessage(connection, connectionMsgBytes);
+    connection.connected.shouldBeTrue;
+
+    server.newMessage(connection, cast(ubyte[])[0xe0, 0x00]); //disconnect
+    connection.connected.shouldBeFalse;
 }
