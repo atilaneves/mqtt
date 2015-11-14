@@ -78,8 +78,8 @@ private:
         if(parts.empty) return tree;
 
         //create if not already here
-        const part = parts.front;
-        if(part !in tree.children) tree.children[part.idup] = new Node;
+        const part = parts.front.idup;
+        if(part !in tree.children) tree.children[part] = new Node;
 
         parts.popFront;
         return addOrFindNode(tree.children[part], parts);
