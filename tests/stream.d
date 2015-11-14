@@ -4,36 +4,46 @@ import unit_threaded;
 import mqttd.stream;
 import mqttd.message;
 import mqttd.server;
+import mqttd.broker;
+import std.stdio;
+import std.algorithm;
+import std.array;
+import cerealed;
 
+struct TestMqttConnection {
+    void newMessage(in ubyte[] payload) {
+        writeln(&this, " New message: ", payload);
+        auto dec = Decerealiser(payload);
+        immutable fixedHeader = dec.value!MqttFixedHeader;
+        dec.reset;
+        switch(fixedHeader.type) with(MqttType) {
+            case PUBLISH:
+                auto msg = dec.value!MqttPublish;
+                payloads ~= msg.payload.dup;
+                break;
 
-class TestMqttConnection {
-    mixin MqttConnection;
+            default:
+                break;
+        }
+    }
 
     alias Payload = ubyte[];
+    Payload[] payloads;
 
-    void newMessage(in string topic, in ubyte[] payload) {
-        import std.stdio;
+    static assert(isNewMqttSubscriber!TestMqttConnection);
+}
 
-        writeln("newMessage with payload ", payload);
-        payloads ~= payload;
-    }
-
-    void write(in ubyte[] bytes) {
-    }
-
-    void disconnect() {  }
-
-    const(Payload)[] payloads;
-
-    static assert(isMqttConnection!TestMqttConnection);
+void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+    MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
 }
 
 
-@HiddenTest
 void testMqttInTwoPackets() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
+    auto server = MqttServer!TestMqttConnection();
+    auto connection = TestMqttConnection();
     auto stream = MqttStream(128);
+
+    server.subscribe(connection, 33, ["top"]);
 
     ubyte[] bytes1 = [ 0x3c, 0x0f, //fixed header
                        0x00, 0x03, 't', 'o', 'p', //topic name
@@ -47,7 +57,7 @@ void testMqttInTwoPackets() {
     ubyte[] bytes2 = [ 4, 5, 6, 7, 8]; //2nd part of payload
     stream ~= bytes2;
     stream.handleMessages(server, connection);
-    connection.payloads.shouldEqual([[1, 2, 3, 4, 5, 7, 8]]);
+    connection.payloads.shouldEqual([[1, 2, 3, 4, 5, 6, 7, 8]]);
 }
 
 

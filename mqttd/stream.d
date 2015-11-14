@@ -3,6 +3,7 @@ module mqttd.stream;
 import mqttd.server;
 import mqttd.message;
 import mqttd.factory;
+import mqttd.broker;
 import cerealed.decerealiser;
 import std.stdio;
 import std.conv;
@@ -46,6 +47,7 @@ struct MqttStream {
         updateLastMessageSize;
     }
 
+
     bool hasMessages() pure nothrow {
         return _lastMessageSize >= MqttFixedHeader.SIZE && _bytes.length >= _lastMessageSize;
     }
@@ -65,6 +67,9 @@ struct MqttStream {
             MqttFactory.handleMessage(popNextMessageBytes, server, connection);
     }
 
+    void handleMessages(T)(MqttServer!T server, T connection) @trusted if(isNewMqttSubscriber!T) {
+        while(hasMessages) server.newMessage(connection, popNextMessageBytes);
+    }
 
 private:
 
