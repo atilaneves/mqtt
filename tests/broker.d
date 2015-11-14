@@ -4,6 +4,7 @@ import unit_threaded;
 import mqttd.broker;
 import mqttd.message;
 import std.algorithm;
+import std.typecons;
 
 struct TestMqttSubscriber {
     alias Payload = ubyte[];
@@ -20,68 +21,76 @@ struct TestMqttSubscriber {
 
 
 void testSubscribe() {
-    auto broker = NewMqttBroker!TestMqttSubscriber();
 
-    auto subscriber = TestMqttSubscriber();
-    broker.publish("topics/foo", [2, 4, 6]);
-    shouldEqual(subscriber.messages, []);
+    foreach(useCache; [Yes.useCache, No.useCache]) {
+        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
 
-    broker.subscribe(subscriber, ["topics/foo"]);
-    broker.publish("topics/foo", [2, 4, 6]);
-    broker.publish("topics/bar", [1, 3, 5, 7]);
-    shouldEqual(subscriber.messages, [[2, 4, 6]]);
+        auto subscriber = TestMqttSubscriber();
+        broker.publish("topics/foo", [2, 4, 6]);
+        shouldEqual(subscriber.messages, []);
 
-    broker.subscribe(subscriber, ["topics/bar"]);
-    broker.publish("topics/foo", [2, 4, 6]);
-    broker.publish("topics/bar", [1, 3, 5, 7]);
-    shouldEqual(subscriber.messages, [[2, 4, 6], [2, 4, 6], [1, 3, 5, 7]]);
+        broker.subscribe(subscriber, ["topics/foo"]);
+        broker.publish("topics/foo", [2, 4, 6]);
+        broker.publish("topics/bar", [1, 3, 5, 7]);
+        shouldEqual(subscriber.messages, [[2, 4, 6]]);
+
+        broker.subscribe(subscriber, ["topics/bar"]);
+        broker.publish("topics/foo", [2, 4, 6]);
+        broker.publish("topics/bar", [1, 3, 5, 7]);
+        shouldEqual(subscriber.messages, [[2, 4, 6], [2, 4, 6], [1, 3, 5, 7]]);
+    }
 }
 
 
 void testUnsubscribeAll() {
-    auto broker = NewMqttBroker!TestMqttSubscriber();
-    auto subscriber = TestMqttSubscriber();
+    foreach(useCache; [Yes.useCache, No.useCache]) {
+        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto subscriber = TestMqttSubscriber();
 
-    broker.subscribe(subscriber, ["topics/foo"]);
-    broker.publish("topics/foo", [2, 4, 6]);
-    broker.publish("topics/bar", [1, 3, 5, 7]);
-    shouldEqual(subscriber.messages, [[2, 4, 6]]);
+        broker.subscribe(subscriber, ["topics/foo"]);
+        broker.publish("topics/foo", [2, 4, 6]);
+        broker.publish("topics/bar", [1, 3, 5, 7]);
+        shouldEqual(subscriber.messages, [[2, 4, 6]]);
 
-    broker.unsubscribe(subscriber);
-    broker.publish("topics/foo", [2, 4, 6]);
-    broker.publish("topics/bar", [1, 3, 5, 7]);
-    shouldEqual(subscriber.messages, [[2, 4, 6]]); //shouldn't have changed
+        broker.unsubscribe(subscriber);
+        broker.publish("topics/foo", [2, 4, 6]);
+        broker.publish("topics/bar", [1, 3, 5, 7]);
+        shouldEqual(subscriber.messages, [[2, 4, 6]]); //shouldn't have changed
+    }
 }
 
-
 void testUnsubscribeOne() {
-    auto broker = NewMqttBroker!TestMqttSubscriber();
-    auto subscriber = TestMqttSubscriber();
+    foreach(useCache; [Yes.useCache, No.useCache]) {
+        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto subscriber = TestMqttSubscriber();
 
-    broker.subscribe(subscriber, ["topics/foo", "topics/bar"]);
-    broker.publish("topics/foo", [2, 4, 6]);
-    broker.publish("topics/bar", [1, 3, 5, 7]);
-    broker.publish("topics/baz", [9, 8, 7, 6, 5]);
-    shouldEqual(subscriber.messages, [[2, 4, 6], [1, 3, 5, 7]]);
+        broker.subscribe(subscriber, ["topics/foo", "topics/bar"]);
+        broker.publish("topics/foo", [2, 4, 6]);
+        broker.publish("topics/bar", [1, 3, 5, 7]);
+        broker.publish("topics/baz", [9, 8, 7, 6, 5]);
+        shouldEqual(subscriber.messages, [[2, 4, 6], [1, 3, 5, 7]]);
 
-    broker.unsubscribe(subscriber, ["topics/foo"]);
-    broker.publish("topics/foo", [2, 4, 6]);
-    broker.publish("topics/bar", [1, 3, 5, 7]);
-    broker.publish("topics/baz", [9, 8, 7, 6, 5]);
-    shouldEqual(subscriber.messages, [[2, 4, 6], [1, 3, 5, 7], [1, 3, 5, 7]]);
+        broker.unsubscribe(subscriber, ["topics/foo"]);
+        broker.publish("topics/foo", [2, 4, 6]);
+        broker.publish("topics/bar", [1, 3, 5, 7]);
+        broker.publish("topics/baz", [9, 8, 7, 6, 5]);
+        shouldEqual(subscriber.messages, [[2, 4, 6], [1, 3, 5, 7], [1, 3, 5, 7]]);
+    }
 }
 
 
 private void checkMatches(in string pubTopic, in string subTopic, bool matches) {
-    auto broker = NewMqttBroker!TestMqttSubscriber();
-    auto subscriber = TestMqttSubscriber();
+    foreach(useCache; [Yes.useCache, No.useCache]) {
+        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto subscriber = TestMqttSubscriber();
 
-    broker.subscribe(subscriber, [subTopic]);
-    broker.publish(pubTopic, [1, 2, 3, 4]);
-    const expected = matches ? [[1, 2, 3, 4]] : [];
-    writelnUt("checkMatches, subTopic is ", subTopic, " pubTopic is ", pubTopic,
-              ", matches is ", matches);
-    shouldEqual(subscriber.messages, expected);
+        broker.subscribe(subscriber, [subTopic]);
+        broker.publish(pubTopic, [1, 2, 3, 4]);
+        const expected = matches ? [[1, 2, 3, 4]] : [];
+        writelnUt("checkMatches, subTopic is ", subTopic, " pubTopic is ", pubTopic,
+                  ", matches is ", matches);
+        shouldEqual(subscriber.messages, expected);
+    }
 }
 
 
@@ -105,35 +114,38 @@ void testWildCards() {
 
 
 void testSubscribeWithWildCards() {
-    auto broker = NewMqttBroker!TestMqttSubscriber();
-    auto subscriber1 = TestMqttSubscriber();
+    foreach(useCache; [Yes.useCache, No.useCache]) {
 
-    broker.subscribe(subscriber1, ["topics/foo/+"]);
-    broker.publish("topics/foo/bar", [3]);
-    broker.publish("topics/bar/baz/boo", [4]); //shouldn't get this one
-    shouldEqual(subscriber1.messages, [[3]]);
+        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto subscriber1 = TestMqttSubscriber();
 
-    auto subscriber2 = TestMqttSubscriber();
-    broker.subscribe(subscriber2, ["topics/foo/#"]);
-    broker.publish("topics/foo/bar", [3]);
-    broker.publish("topics/bar/baz/boo", [4]);
+        broker.subscribe(subscriber1, ["topics/foo/+"]);
+        broker.publish("topics/foo/bar", [3]);
+        broker.publish("topics/bar/baz/boo", [4]); //shouldn't get this one
+        shouldEqual(subscriber1.messages, [[3]]);
 
-    shouldEqual(subscriber1.messages, [[3], [3]]);
-    shouldEqual(subscriber2.messages, [[3]]);
+        auto subscriber2 = TestMqttSubscriber();
+        broker.subscribe(subscriber2, ["topics/foo/#"]);
+        broker.publish("topics/foo/bar", [3]);
+        broker.publish("topics/bar/baz/boo", [4]);
 
-    auto subscriber3 = TestMqttSubscriber();
-    broker.subscribe(subscriber3, ["topics/+/bar"]);
-    auto subscriber4 = TestMqttSubscriber();
-    broker.subscribe(subscriber4, ["topics/#"]);
+        shouldEqual(subscriber1.messages, [[3], [3]]);
+        shouldEqual(subscriber2.messages, [[3]]);
 
-    broker.publish("topics/foo/bar", [3]);
-    broker.publish("topics/bar/baz/boo", [4]);
-    broker.publish("topics/boo/bar/zoo", [5]);
-    broker.publish("topics/foo/bar/zoo", [6]);
-    broker.publish("topics/bbobobobo/bar", [7]);
+        auto subscriber3 = TestMqttSubscriber();
+        broker.subscribe(subscriber3, ["topics/+/bar"]);
+        auto subscriber4 = TestMqttSubscriber();
+        broker.subscribe(subscriber4, ["topics/#"]);
 
-    shouldEqual(subscriber1.messages, [[3], [3], [3]]);
-    shouldEqual(subscriber2.messages, [[3], [3], [6]]);
-    shouldEqual(subscriber3.messages, [[3], [7]]);
-    shouldEqual(subscriber4.messages, [[3], [4], [5], [6], [7]]);
+        broker.publish("topics/foo/bar", [3]);
+        broker.publish("topics/bar/baz/boo", [4]);
+        broker.publish("topics/boo/bar/zoo", [5]);
+        broker.publish("topics/foo/bar/zoo", [6]);
+        broker.publish("topics/bbobobobo/bar", [7]);
+
+        shouldEqual(subscriber1.messages, [[3], [3], [3]]);
+        shouldEqual(subscriber2.messages, [[3], [3], [6]]);
+        shouldEqual(subscriber3.messages, [[3], [7]]);
+        shouldEqual(subscriber4.messages, [[3], [4], [5], [6], [7]]);
+    }
 }

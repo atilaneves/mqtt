@@ -59,6 +59,7 @@ private:
         NewSubscription!S[] leaves;
     }
 
+    Flag!"useCache" _useCache;
     Node _tree;
 
     Node* addOrFindNode(R)(Node* tree, R parts) if(isInputRange!R && is(ElementType!R == string)) {
