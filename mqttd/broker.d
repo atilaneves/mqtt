@@ -73,7 +73,8 @@ private:
     }
 
     void unsubscribeImpl(Node* tree, ref S subscriber, in string[] topics) {
-        tree.leaves = tree.leaves.filter!(a => a.isSubscriber(subscriber, topics)).array;
+        tree.leaves = tree.leaves.filter!(a => !a.isSubscriber(subscriber, topics)).array;
+
         if(tree.children.length == 0) return;
         foreach(k, v; tree.children) {
             unsubscribeImpl(v, subscriber, topics);
@@ -128,7 +129,7 @@ private struct NewSubscription(S) if(isNewMqttSubscriber!S) {
         _subscriber.newMessage(bytes);
     }
 
-    bool isSubscriber(ref S subscriber, in string[] topics) @trusted pure nothrow const {
+    bool isSubscriber(ref S subscriber, in string[] topics) @trusted const {
         immutable isSameTopic = topics.empty || topics.canFind(_topic);
         return isSameTopic && &subscriber == _subscriber;
     }
