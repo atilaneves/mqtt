@@ -129,10 +129,6 @@ public:
 
     @property bool isBadClientId() const { return clientId.length < 1 || clientId.length > 23; }
 
-    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.newConnection(connection, this);
-    }
-
     MqttFixedHeader header;
     string protoName;
     ubyte protoVersion;
@@ -229,10 +225,6 @@ public:
 
     mixin assertHasPostBlit!MqttPublish;
 
-    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.publish(topic, payload);
-    }
-
     const(ubyte)[] payload() @safe pure const nothrow {
         return _payload;
     }
@@ -258,10 +250,6 @@ public:
         immutable remaining = cast(uint)(msgId.sizeof + topics.map!(a => a.qos.sizeof + a.topic.length + 2).sum);
         this.header = MqttFixedHeader(MqttType.SUBSCRIBE, dup, qos, retain, remaining);
         this.topics = topics;
-    }
-
-    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.subscribe(connection, msgId, topics.dup);
     }
 
     static struct Topic {
@@ -304,10 +292,6 @@ struct MqttUnsubscribe {
         this.topics = topics.dup;
     }
 
-    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.unsubscribe(connection, msgId, topics);
-    }
-
     MqttFixedHeader header;
     ushort msgId;
     @RawArray string[] topics;
@@ -327,20 +311,6 @@ struct MqttUnsuback {
     ushort msgId;
 }
 
-struct MqttDisconnect {
-    this(MqttFixedHeader) {}
-    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.unsubscribe(connection);
-        connection.disconnect();
-    }
-}
-
-struct MqttPingReq {
-    this(MqttFixedHeader = MqttFixedHeader()) {}
-    void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
-        server.ping(connection);
-    }
-}
 
 struct MqttPingResp {
     this(MqttFixedHeader = MqttFixedHeader()) {}

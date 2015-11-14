@@ -3,7 +3,6 @@ module tests.server;
 import unit_threaded;
 import mqttd.server;
 import mqttd.message;
-import mqttd.factory;
 import mqttd.broker;
 import std.stdio, std.conv, std.algorithm, std.array, std.range;
 import cerealed;

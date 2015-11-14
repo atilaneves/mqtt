@@ -1,7 +1,6 @@
 module mqttd.tcp;
 
 import mqttd.server;
-import mqttd.factory;
 import mqttd.message;
 import mqttd.stream;
 import mqttd.message;

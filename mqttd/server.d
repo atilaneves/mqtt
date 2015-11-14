@@ -2,7 +2,6 @@ module mqttd.server;
 
 
 import mqttd.message;
-import mqttd.factory;
 import mqttd.broker;
 import cerealed;
 import std.stdio;

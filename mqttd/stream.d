@@ -2,7 +2,6 @@ module mqttd.stream;
 
 import mqttd.server;
 import mqttd.message;
-import mqttd.factory;
 import mqttd.broker;
 import cerealed.decerealiser;
 import std.stdio;
