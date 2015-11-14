@@ -24,24 +24,8 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
 }
 
 struct NewTestMqttConnection {
-
-    void write(in ubyte[] bytes) {
-        lastBytes = bytes.dup;
-        writelnUt("TestMqttConnection got a message from the server:\n", lastBytes, "\n");
-
-        auto dec = Decerealiser(bytes);
-        auto fixedHeader = dec.value!MqttFixedHeader;
-        dec.reset;
-
-        if(fixedHeader.type == MqttType.CONNACK) {
-            auto connack = MqttConnack(fixedHeader);
-            dec.grain(connack);
-            code = connack.code;
-        }
-
-    }
-
     void newMessage(in ubyte[] payload) {
+        writeln("New message: ", payload);
         auto dec = Decerealiser(payload);
         immutable fixedHeader = dec.value!MqttFixedHeader;
         dec.reset;
@@ -50,11 +34,14 @@ struct NewTestMqttConnection {
                 code = dec.value!MqttConnack.code;
                 break;
             case PUBLISH:
-                payloads ~= payload.map!(a => cast(char)a).array;
+                auto msg = dec.value!MqttPublish;
+                payloads ~= msg.payload.dup;
                 break;
             default:
                 break;
         }
+
+        lastBytes = payload.dup;
     }
 
     void disconnect() { connected = false; }
@@ -68,9 +55,10 @@ struct NewTestMqttConnection {
         dec.grain(t);
         return t;
     }
+    alias Payload = ubyte[];
 
     const(ubyte)[] lastBytes;
-    string[] payloads;
+    Payload[] payloads;
     bool connected = false;
     MqttConnect connect;
     MqttConnack.Code code = MqttConnack.Code.SERVER_UNAVAILABLE;
@@ -107,6 +95,10 @@ void testConnectBigId() {
     connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
 }
 
+void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in ubyte[] payload) if(isNewMqttSubscriber!S) {
+    MqttPublish(topic, payload).cerealise!(b => server.newMessage(connection, b));
+}
+
 void testConnectSmallId() {
    auto server = MqttServer!NewTestMqttConnection();
     ubyte[] bytes = [ 0x10, 0x27, //fixed header
@@ -125,6 +117,53 @@ void testConnectSmallId() {
     server.newMessage(connection, bytes);
     connection.connect.isBadClientId.shouldBeTrue;
     connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
+}
+
+void testSubscribeWithMessage() {
+    auto server = MqttServer!NewTestMqttConnection();
+    auto connection = NewTestMqttConnection();
+
+    server.newMessage(connection, connectionMsgBytes);
+
+    server.publish(connection, "foo/bar/baz", [1, 2, 3, 4, 5, 6]);
+    shouldEqual(connection.payloads, []);
+
+    ubyte[] bytes = [ 0x8b, 0x13, //fixed header
+                      0x00, 0x21, //message ID
+                      0x00, 0x05, 'f', 'i', 'r', 's', 't',
+                      0x01, //qos
+                      0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',
+                      0x02, //qos
+        ];
+
+    server.newMessage(connection, bytes);
+    const suback = connection.lastMsg!MqttSuback;
+    shouldEqual(suback.msgId, 0x21);
+    shouldEqual(suback.qos, [1, 2]);
+
+    bytes = [ 0x3c, 0x0d, //fixed header
+              0x00, 0x05, 'f', 'i', 'r', 's', 't',//topic name
+              0x00, 0x21, //message ID
+              1, 2, 3, 4 //payload
+        ];
+    server.newMessage(connection, bytes);
+
+    bytes = [ 0x3c, 0x0d, //fixed header
+              0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',//topic name
+              0x00, 0x21, //message ID
+              9, 8, 7//payload
+        ];
+    server.newMessage(connection, bytes); //publish
+
+    bytes = [ 0x3c, 0x0c, //fixed header
+              0x00, 0x05, 't', 'h', 'i', 'r', 'd',//topic name
+              0x00, 0x21, //message ID
+              2, 4, 6, //payload
+        ];
+    server.newMessage(connection, bytes); //publish
+
+
+    shouldEqual(connection.payloads, [[1, 2, 3, 4], [9, 8, 7]]);
 }
 
 
@@ -182,77 +221,6 @@ class TestMqttConnection {
 }
 
 
-void testSubscribe() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
-
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    shouldEqual(connection.payloads, []);
-
-    server.subscribe(connection, 42, ["foo/bar/+"]);
-    const suback = connection.lastMsg!(MqttSuback);
-    shouldEqual(suback.msgId, 42);
-    shouldEqual(suback.qos, [0]);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff"]);
-
-    server.unsubscribe(connection);
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
-}
-
-
-void testSubscribeWithMessage() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
-
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    shouldEqual(connection.payloads, []);
-
-    ubyte[] bytes = [ 0x8b, 0x13, //fixed header
-                      0x00, 0x21, //message ID
-                      0x00, 0x05, 'f', 'i', 'r', 's', 't',
-                      0x01, //qos
-                      0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',
-                      0x02, //qos
-        ];
-
-    MqttFactory.handleMessage(bytes, server, connection);
-    const suback = connection.lastMsg!MqttSuback;
-    shouldEqual(suback.msgId, 0x21);
-    shouldEqual(suback.qos, [1, 2]);
-
-    bytes = [ 0x3c, 0x0d, //fixed header
-              0x00, 0x05, 'f', 'i', 'r', 's', 't',//topic name
-              0x00, 0x21, //message ID
-              'b', 'o', 'r', 'g', //payload
-        ];
-    MqttFactory.handleMessage(bytes, server, connection);
-
-    bytes = [ 0x3c, 0x0d, //fixed header
-              0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',//topic name
-              0x00, 0x21, //message ID
-              'f', 'o', 'o',//payload
-        ];
-    MqttFactory.handleMessage(bytes, server, connection); //publish
-
-    bytes = [ 0x3c, 0x0c, //fixed header
-              0x00, 0x05, 't', 'h', 'i', 'r', 'd',//topic name
-              0x00, 0x21, //message ID
-              'f', 'o', 'o',//payload
-        ];
-    MqttFactory.handleMessage(bytes, server, connection); //publish
-
-
-    shouldEqual(connection.payloads, ["borg", "foo"]);
-}
 
 void testUnsubscribe() {
     auto server = new CMqttServer!TestMqttConnection();

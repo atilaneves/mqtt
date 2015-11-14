@@ -29,10 +29,27 @@ struct MqttServer(S) if(isNewMqttSubscriber!S) {
                 MqttConnack(code).cerealise!(b => connection.newMessage(b));
                 break;
 
+            case SUBSCRIBE:
+                auto msg = dec.value!MqttSubscribe;
+                _broker.subscribe(connection, msg.topics);
+                const qos = msg.topics.map!(a => a.qos).array;
+                MqttSuback(msg.msgId, qos).cerealise!(b => connection.newMessage(b));
+
+                break;
+
+            case PUBLISH:
+                auto msg = dec.value!MqttPublish;
+                _broker.publish(msg.topic, bytes);
+                break;
+
             default:
                 throw new Exception(text("Don't know how to handle message of type ", fixedHeader.type));
         }
     }
+
+private:
+
+    NewMqttBroker!S _broker;
 }
 
 //////////////////////////////////////////////////////////////////////old
