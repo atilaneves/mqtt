@@ -4,11 +4,38 @@ module mqttd.server;
 import mqttd.message;
 import mqttd.factory;
 import mqttd.broker;
-import cerealed.cerealiser;
+import cerealed;
 import std.stdio;
 import std.algorithm;
 import std.array;
+import std.conv;
 
+
+struct MqttServer(S) if(isNewMqttSubscriber!S) {
+
+    void newMessage(R)(ref S connection, R bytes) if(isInputRangeOf!(R, ubyte)) {
+        auto dec = Decerealiser(bytes);
+        immutable fixedHeader = dec.value!MqttFixedHeader;
+        dec.reset(); //to be used deserialising
+
+        switch(fixedHeader.type) with(MqttType) {
+            case CONNECT:
+                auto code = MqttConnack.Code.ACCEPTED;
+                auto connect = dec.value!MqttConnect;
+                if(connect.isBadClientId) {
+                    code = MqttConnack.Code.BAD_ID;
+                }
+
+                MqttConnack(code).cerealise!(b => connection.newMessage(b));
+                break;
+
+            default:
+                throw new Exception(text("Don't know how to handle message of type ", fixedHeader.type));
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////old
 
 enum isMqttInput(T) = is(typeof(() {
     ubyte[] bytes;

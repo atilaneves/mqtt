@@ -4,8 +4,10 @@ import unit_threaded;
 import mqttd.server;
 import mqttd.message;
 import mqttd.factory;
+import mqttd.broker;
 import std.stdio, std.conv, std.algorithm, std.array;
 import cerealed;
+
 
 const (ubyte)[] connectionMsgBytes() pure nothrow {
     return [ 0x10, 0x2a, //fixed header
@@ -20,6 +22,114 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
              0x00, 0x02, 'p', 'w', //password
         ];
 }
+
+struct NewTestMqttConnection {
+
+    void write(in ubyte[] bytes) {
+        lastBytes = bytes.dup;
+        writelnUt("TestMqttConnection got a message from the server:\n", lastBytes, "\n");
+
+        auto dec = Decerealiser(bytes);
+        auto fixedHeader = dec.value!MqttFixedHeader;
+        dec.reset;
+
+        if(fixedHeader.type == MqttType.CONNACK) {
+            auto connack = MqttConnack(fixedHeader);
+            dec.grain(connack);
+            code = connack.code;
+        }
+
+    }
+
+    void newMessage(in ubyte[] payload) {
+        auto dec = Decerealiser(payload);
+        immutable fixedHeader = dec.value!MqttFixedHeader;
+        dec.reset;
+        switch(fixedHeader.type) with(MqttType) {
+            case CONNACK:
+                code = dec.value!MqttConnack.code;
+                break;
+            case PUBLISH:
+                payloads ~= payload.map!(a => cast(char)a).array;
+                break;
+            default:
+                break;
+        }
+    }
+
+    void disconnect() { connected = false; }
+
+    T lastMsg(T)() {
+        auto dec = Decerealiser(lastBytes);
+        auto fixedHeader = dec.value!MqttFixedHeader;
+        dec.reset;
+
+        auto t = T(fixedHeader);
+        dec.grain(t);
+        return t;
+    }
+
+    const(ubyte)[] lastBytes;
+    string[] payloads;
+    bool connected = false;
+    MqttConnect connect;
+    MqttConnack.Code code = MqttConnack.Code.SERVER_UNAVAILABLE;
+
+    static assert(isNewMqttSubscriber!NewTestMqttConnection);
+}
+
+
+void testConnect() {
+    auto server = MqttServer!NewTestMqttConnection();
+    auto connection = NewTestMqttConnection();
+    server.newMessage(connection, connectionMsgBytes);
+    connection.code.shouldEqual(MqttConnack.Code.ACCEPTED);
+}
+
+void testConnectBigId() {
+   auto server = MqttServer!NewTestMqttConnection();
+    ubyte[] bytes = [ 0x10, 0x3f, //fixed header
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x00, 0x0a, //keepalive of 10
+                      0x00, 0x18, 'c', 'i', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd',
+                                  'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', //24 char client id
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x02, 'p', 'w', //password
+        ];
+
+    auto connection = NewTestMqttConnection();
+    server.newMessage(connection, bytes);
+    connection.connect.isBadClientId.shouldBeTrue;
+    connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
+}
+
+void testConnectSmallId() {
+   auto server = MqttServer!NewTestMqttConnection();
+    ubyte[] bytes = [ 0x10, 0x27, //fixed header
+                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
+                      0x03, //protocol version
+                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
+                      0x00, 0x0a, //keepalive of 10
+                      0x00, 0x00, //no client id
+                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
+                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
+                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
+                      0x00, 0x02, 'p', 'w', //password
+        ];
+
+    auto connection = NewTestMqttConnection();
+    server.newMessage(connection, bytes);
+    connection.connect.isBadClientId.shouldBeTrue;
+    connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////old
+
 
 
 class TestMqttConnection {
@@ -71,54 +181,6 @@ class TestMqttConnection {
     static assert(isMqttConnection!TestMqttConnection);
 }
 
-void testConnect() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-    connection.code.shouldEqual(MqttConnack.Code.ACCEPTED);
-}
-
-
-void testConnectBigId() {
-   auto server = new CMqttServer!TestMqttConnection();
-    ubyte[] bytes = [ 0x10, 0x3f, //fixed header
-                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
-                      0x03, //protocol version
-                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
-                      0x00, 0x0a, //keepalive of 10
-                      0x00, 0x18, 'c', 'i', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd',
-                                  'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd', //24 char client id
-                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
-                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
-                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x02, 'p', 'w', //password
-        ];
-
-    auto connection = new TestMqttConnection;
-    MqttFactory.handleMessage(bytes, server, connection);
-    connection.connect.isBadClientId.shouldBeTrue;
-    connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
-}
-
-void testConnectSmallId() {
-   auto server = new CMqttServer!TestMqttConnection();
-    ubyte[] bytes = [ 0x10, 0x27, //fixed header
-                      0x00, 0x06, 'M', 'Q', 'I', 's', 'd', 'p', //protocol name
-                      0x03, //protocol version
-                      0xcc, //connection flags 1100111x username, pw, !wr, w(01), w, !c, x
-                      0x00, 0x0a, //keepalive of 10
-                      0x00, 0x00, //no client id
-                      0x00, 0x04, 'w', 'i', 'l', 'l', //will topic
-                      0x00, 0x04, 'w', 'm', 's', 'g', //will msg
-                      0x00, 0x07, 'g', 'l', 'i', 'f', 't', 'e', 'l', //username
-                      0x00, 0x02, 'p', 'w', //password
-        ];
-
-    auto connection = new TestMqttConnection;
-    MqttFactory.handleMessage(bytes, server, connection);
-    connection.connect.isBadClientId.shouldBeTrue;
-    connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
-}
 
 void testSubscribe() {
     auto server = new CMqttServer!TestMqttConnection();
