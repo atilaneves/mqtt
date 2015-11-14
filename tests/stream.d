@@ -96,45 +96,29 @@ void testTwoMqttInThreePackets() {
 }
 
 
-void testTwoMqttInThreePacketsMultiPop() {
-    ubyte[] bytes1 = [ 0x3c, 0x0f, //fixed header
-                       0x00, 0x03, 't', 'o', 'p', //topic name
-                       0x00, 0x21, //message ID
-                       'a', 'b', 'c' ]; //1st part of payload
-    auto stream = MqttStream(128);
-    stream ~= bytes1;
-
-    ubyte[] bytes2 = [ 'd', 'e', 'f', 'g', 'h']; //2nd part of payload
-    stream ~= bytes2;
-
-    ubyte[] bytes3 = [0xe0, 0x00];
-    stream ~= bytes3;
-
-    stream.popNextMessageBytes.shouldEqual(bytes1 ~ bytes2);
-    stream.popNextMessageBytes.shouldEqual(bytes3);
-}
-
-
 void testTwoMqttInOnePacket() {
    auto stream = MqttStream(128);
-   shouldBeFalse(stream.hasMessages());
+   auto server = MqttServer!TestMqttConnection();
+   auto connection = TestMqttConnection();
+
+   server.subscribe(connection, 33, ["top"]);
 
    ubyte[] bytes1 = [ 0x3c ]; // half of header
    ubyte[] bytes2 = [ 0x0f, //2nd half fixed header
                      0x00, 0x03, 't', 'o', 'p', //topic name
                      0x00, 0x21, //message ID
-                     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', //payload
+                      1, 2, 3, 4, 5, 6, 7, 8, //payload
                      0xe0, 0x00, //header for disconnect
        ];
+
    stream ~= bytes1;
-   shouldBeFalse(stream.hasMessages());
+   stream.handleMessages(server, connection);
+   connection.payloads.shouldBeEmpty;
 
    stream ~= bytes2;
-   shouldBeTrue(stream.hasMessages());
-   stream.popNextMessageBytes.shouldEqual((bytes1 ~ bytes2)[0 .. $-2]);
-   stream.popNextMessageBytes.shouldEqual([0xe0, 0x00]);
+   stream.handleMessages(server, connection);
+   connection.payloads.shouldEqual([[1, 2, 3, 4, 5, 6, 7, 8]]);
 }
-
 
 void testBug1() {
     auto stream = MqttStream(128);
