@@ -12,7 +12,7 @@ import cerealed;
 
 struct TestMqttConnection {
     void newMessage(in ubyte[] payload) {
-        writeln(&this, " New message: ", payload);
+        writeln(&this, "  message: ", payload);
         auto dec = Decerealiser(payload);
         immutable fixedHeader = dec.value!MqttFixedHeader;
         dec.reset;
@@ -36,10 +36,10 @@ struct TestMqttConnection {
     const(Payload)[] messages;
     bool connected = true;
 
-    static assert(isNewMqttSubscriber!TestMqttConnection);
+    static assert(isMqttSubscriber!TestMqttConnection);
 }
 
-void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isMqttSubscriber!S) {
     MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
 }
 

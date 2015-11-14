@@ -67,6 +67,6 @@ private:
         }
     }
 
-    static assert(isNewMqttConnection!MqttTcpConnection);
+    static assert(isMqttConnection!MqttTcpConnection);
     static assert(isMqttInput!MqttTcpConnection);
 }

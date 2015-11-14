@@ -13,13 +13,13 @@ enum isTopicRange(R) = isForwardRange!R && is(Unqual!(ElementType!R) == string);
 
 enum isInputRangeOf(R, T) = isInputRange!R && is(Unqual!(ElementType!R) == T);
 
-enum isNewMqttSubscriber(T) = is(typeof((){
+enum isMqttSubscriber(T) = is(typeof((){
     const(ubyte)[] bytes;
     auto sub = T.init;
     sub.newMessage(bytes);
 }));
 
-struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
+struct MqttBroker(S) if(isMqttSubscriber!S) {
 
     void subscribe(R)(ref S subscriber, R topics)
         if(isInputRange!R && is(Unqual!(ElementType!R) == string))
@@ -34,7 +34,7 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
         foreach(topic; topics) {
             auto subParts = topic.topic.splitter("/");
             auto node = addOrFindNode(&_tree, subParts);
-            node.leaves ~= NewSubscription!(S)(subscriber, topic);
+            node.leaves ~= Subscription!(S)(subscriber, topic);
         }
     }
 
@@ -63,12 +63,12 @@ private:
 
     static struct Node {
         Node*[immutable(string)] children;
-        NewSubscription!S[] leaves;
+        Subscription!S[] leaves;
     }
 
     Flag!"useCache" _useCache;
     Node _tree;
-    NewSubscription!S[][string] _cache;
+    Subscription!S[][string] _cache;
 
     void invalidateCache() {
         if(_useCache) _cache = _cache.init;
@@ -132,7 +132,7 @@ private:
 }
 
 
-private struct NewSubscription(S) if(isNewMqttSubscriber!S) {
+private struct Subscription(S) if(isMqttSubscriber!S) {
     this(ref S subscriber, in MqttSubscribe.Topic topic) {
         _subscriber = &subscriber;
         _topic = topic.topic.idup;

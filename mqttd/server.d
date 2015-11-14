@@ -12,15 +12,15 @@ import std.conv;
 import std.typecons;
 
 
-enum isNewMqttConnection(C) = isNewMqttSubscriber!C && is(typeof(() {
+enum isMqttConnection(C) = isMqttSubscriber!C && is(typeof(() {
     auto c = C.init;
     c.disconnect();
 }));
 
-struct MqttServer(C) if(isNewMqttConnection!C) {
+struct MqttServer(C) if(isMqttConnection!C) {
 
     this(Flag!"useCache" useCache = No.useCache) {
-        _broker = NewMqttBroker!C(useCache);
+        _broker = MqttBroker!C(useCache);
     }
 
     void newMessage(R)(ref C connection, R bytes) if(isInputRangeOf!(R, ubyte)) {
@@ -74,5 +74,5 @@ struct MqttServer(C) if(isNewMqttConnection!C) {
 
 private:
 
-    NewMqttBroker!C _broker;
+    MqttBroker!C _broker;
 }

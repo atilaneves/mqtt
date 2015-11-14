@@ -70,7 +70,7 @@ struct MqttStream {
         return ret;
     }
 
-    void handleMessages(T)(ref MqttServer!T server, ref T connection) @trusted if(isNewMqttSubscriber!T) {
+    void handleMessages(T)(ref MqttServer!T server, ref T connection) @trusted if(isMqttSubscriber!T) {
         while(hasMessages) server.newMessage(connection, popNextMessageBytes);
     }
 

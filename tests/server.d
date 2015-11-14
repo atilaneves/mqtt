@@ -25,7 +25,7 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
 
 struct TestMqttConnection {
     void newMessage(in ubyte[] payload) {
-        writeln(&this, " New message: ", payload);
+        writeln(&this, "  message: ", payload);
         auto dec = Decerealiser(payload);
         immutable fixedHeader = dec.value!MqttFixedHeader;
         dec.reset;
@@ -65,7 +65,7 @@ struct TestMqttConnection {
     MqttConnect connect;
     MqttConnack.Code code = MqttConnack.Code.SERVER_UNAVAILABLE;
 
-    static assert(isNewMqttSubscriber!TestMqttConnection);
+    static assert(isMqttSubscriber!TestMqttConnection);
 }
 
 
@@ -122,15 +122,15 @@ void testConnectSmallId() {
     connection.connected.shouldBeFalse;
 }
 
-void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in ubyte[] payload) if(isNewMqttSubscriber!S) {
+void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in ubyte[] payload) if(isMqttSubscriber!S) {
     MqttPublish(topic, payload).cerealise!(b => server.newMessage(connection, b));
 }
 
-void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isMqttSubscriber!S) {
     MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
 }
 
-void unsubscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+void unsubscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isMqttSubscriber!S) {
     MqttUnsubscribe(msgId, topics).cerealise!(b => server.newMessage(connection, b));
 }
 

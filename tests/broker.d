@@ -16,14 +16,14 @@ struct TestMqttSubscriber {
 
     const(Payload)[] messages;
 
-    static assert(isNewMqttSubscriber!TestMqttSubscriber);
+    static assert(isMqttSubscriber!TestMqttSubscriber);
 }
 
 
 void testSubscribe() {
 
     foreach(useCache; [Yes.useCache, No.useCache]) {
-        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto broker = MqttBroker!TestMqttSubscriber(useCache);
 
         auto subscriber = TestMqttSubscriber();
         broker.publish("topics/foo", [2, 4, 6]);
@@ -44,7 +44,7 @@ void testSubscribe() {
 
 void testUnsubscribeAll() {
     foreach(useCache; [Yes.useCache, No.useCache]) {
-        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto broker = MqttBroker!TestMqttSubscriber(useCache);
         auto subscriber = TestMqttSubscriber();
 
         broker.subscribe(subscriber, ["topics/foo"]);
@@ -61,7 +61,7 @@ void testUnsubscribeAll() {
 
 void testUnsubscribeOne() {
     foreach(useCache; [Yes.useCache, No.useCache]) {
-        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto broker = MqttBroker!TestMqttSubscriber(useCache);
         auto subscriber = TestMqttSubscriber();
 
         broker.subscribe(subscriber, ["topics/foo", "topics/bar"]);
@@ -81,7 +81,7 @@ void testUnsubscribeOne() {
 
 private void checkMatches(in string pubTopic, in string subTopic, bool matches) {
     foreach(useCache; [Yes.useCache, No.useCache]) {
-        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto broker = MqttBroker!TestMqttSubscriber(useCache);
         auto subscriber = TestMqttSubscriber();
 
         broker.subscribe(subscriber, [subTopic]);
@@ -116,7 +116,7 @@ void testWildCards() {
 void testSubscribeWithWildCards() {
     foreach(useCache; [Yes.useCache, No.useCache]) {
 
-        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto broker = MqttBroker!TestMqttSubscriber(useCache);
         auto subscriber1 = TestMqttSubscriber();
 
         broker.subscribe(subscriber1, ["topics/foo/+"]);
@@ -153,7 +153,7 @@ void testSubscribeWithWildCards() {
 
 void testPlus() {
     foreach(useCache; [Yes.useCache, No.useCache]) {
-        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto broker = MqttBroker!TestMqttSubscriber(useCache);
         auto subscriber = TestMqttSubscriber();
 
         broker.publish("foo/bar/baz", [1, 2, 3, 4]);
