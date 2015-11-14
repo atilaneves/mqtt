@@ -30,6 +30,7 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
     void subscribe(R)(ref S subscriber, R topics)
         if(isInputRange!R && is(ElementType!R == MqttSubscribe.Topic))
     {
+        invalidateCache();
         foreach(topic; topics) {
             auto subParts = topic.topic.splitter("/");
             auto node = addOrFindNode(&_tree, subParts);
@@ -38,18 +39,24 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
     }
 
     void unsubscribe(ref S subscriber) {
-        unsubscribeImpl(&_tree, subscriber, []);
+        static string[] topics;
+        unsubscribe(subscriber, topics);
     }
 
     void unsubscribe(R)(ref S subscriber, R topics)
         if(isInputRange!R && is(ElementType!R == string))
     {
+        invalidateCache();
         unsubscribeImpl(&_tree, subscriber, topics.array);
     }
 
     void publish(in string topic, in ubyte[] payload) {
+        if(_useCache && topic in _cache) {
+            foreach(subscription; _cache[topic]) subscription.newMessage(payload);
+        }
+
         auto pubParts = topic.splitter("/");
-        publishImpl(&_tree, pubParts, payload);
+        publishImpl(&_tree, pubParts, topic, payload);
     }
 
 private:
@@ -61,6 +68,11 @@ private:
 
     Flag!"useCache" _useCache;
     Node _tree;
+    NewSubscription!S[][string] _cache;
+
+    void invalidateCache() {
+        if(_useCache) _cache = _cache.init;
+    }
 
     Node* addOrFindNode(R)(Node* tree, R parts) if(isInputRange!R && is(ElementType!R == string)) {
         if(parts.empty) return tree;
@@ -73,7 +85,7 @@ private:
         return addOrFindNode(tree.children[part], parts);
     }
 
-    void unsubscribeImpl(Node* tree, ref S subscriber, in string[] topics) {
+    static void unsubscribeImpl(Node* tree, ref S subscriber, in string[] topics) {
         tree.leaves = tree.leaves.filter!(a => !a.isSubscriber(subscriber, topics)).array;
 
         if(tree.children.length == 0) return;
@@ -82,7 +94,7 @@ private:
         }
     }
 
-    void publishImpl(R1, R2)(Node* tree, R1 pubParts, R2 bytes)
+    void publishImpl(R1, R2)(Node* tree, R1 pubParts, in string topic, R2 bytes)
         if(isTopicRange!R1 && isInputRangeOf!(R2, ubyte))
     {
         if(pubParts.empty) return;
@@ -93,25 +105,26 @@ private:
                 immutable hasOneElement = hasOneElement(pubParts);
                 if(hasOneElement && "#" in node.children) {
                     //So that "finance/#" matches "finance"
-                    publishNode(node.children["#"], bytes);
+                    publishNode(node.children["#"], topic, bytes);
                 }
 
-                if(hasOneElement || part == "#") publishNode(node, bytes);
+                if(hasOneElement || part == "#") publishNode(node, topic, bytes);
 
                 auto r = pubParts.save;
                 r.popFront;
-                publishImpl(node, r, bytes);
+                publishImpl(node, r, topic, bytes);
             }
         }
     }
 
-    void publishNode(R)(Node* node, R bytes) if(isInputRangeOf!(R, ubyte)) {
+    void publishNode(R)(Node* node, in string topic, R bytes) if(isInputRangeOf!(R, ubyte)) {
         foreach(subscription; node.leaves) {
             subscription.newMessage(bytes);
+            if(_useCache) _cache[topic.idup] ~= subscription;
         }
     }
 
-    bool hasOneElement(R)(R range) if(isTopicRange!R) {
+    static bool hasOneElement(R)(R range) if(isTopicRange!R) {
         auto r = range.save;
         r.popFront;
         return r.empty;
