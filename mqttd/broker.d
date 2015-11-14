@@ -62,7 +62,7 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
 private:
 
     static struct Node {
-        Node*[string] children;
+        Node*[immutable(string)] children;
         NewSubscription!S[] leaves;
     }
 
@@ -79,7 +79,7 @@ private:
 
         //create if not already here
         const part = parts.front;
-        if(part !in tree.children) tree.children[part] = new Node;
+        if(part !in tree.children) tree.children[part.idup] = new Node;
 
         parts.popFront;
         return addOrFindNode(tree.children[part], parts);
@@ -149,7 +149,7 @@ private struct NewSubscription(S) if(isNewMqttSubscriber!S) {
     }
 
     S* _subscriber;
-    string _topic;
+    immutable(string) _topic;
     ubyte _qos;
 }
 

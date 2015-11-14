@@ -254,6 +254,12 @@ public:
         this.header = header;
     }
 
+    this(ushort msgId, Topic[] topics, in bool dup = false, in ubyte qos = 1, in bool retain = false) {
+        immutable remaining = cast(uint)(msgId.sizeof + topics.map!(a => a.qos.sizeof + a.topic.length + 2).sum);
+        this.header = MqttFixedHeader(MqttType.SUBSCRIBE, dup, qos, retain, remaining);
+        this.topics = topics;
+    }
+
     void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {
         server.subscribe(connection, msgId, topics.dup);
     }
@@ -289,6 +295,13 @@ public:
 struct MqttUnsubscribe {
     this(MqttFixedHeader header) {
         this.header = header;
+    }
+
+    this(ushort msgId, in string[] topics,  in bool dup = false, in ubyte qos = 1, in bool retain = false) {
+        immutable remaining = cast(uint)(msgId.sizeof + topics.map!(a => 2 + a.length).sum);
+        this.header = MqttFixedHeader(MqttType.UNSUBSCRIBE, dup, qos, retain, remaining);
+        this.msgId = msgId;
+        this.topics = topics.dup;
     }
 
     void handle(T)(CMqttServer!T server, T connection) const if(isMqttConnection!T) {

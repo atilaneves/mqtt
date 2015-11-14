@@ -9,9 +9,14 @@ import std.stdio;
 import std.algorithm;
 import std.array;
 import std.conv;
+import std.typecons;
 
 
 struct MqttServer(S) if(isNewMqttSubscriber!S) {
+
+    this(Flag!"useCache" useCache = No.useCache) {
+        _broker = NewMqttBroker!S(useCache);
+    }
 
     void newMessage(R)(ref S connection, R bytes) if(isInputRangeOf!(R, ubyte)) {
         auto dec = Decerealiser(bytes);
@@ -34,7 +39,12 @@ struct MqttServer(S) if(isNewMqttSubscriber!S) {
                 _broker.subscribe(connection, msg.topics);
                 const qos = msg.topics.map!(a => a.qos).array;
                 MqttSuback(msg.msgId, qos).cerealise!(b => connection.newMessage(b));
+                break;
 
+            case UNSUBSCRIBE:
+                auto msg = dec.value!MqttUnsubscribe;
+                _broker.unsubscribe(connection, msg.topics);
+                MqttUnsuback(msg.msgId).cerealise!(b => connection.newMessage(b));
                 break;
 
             case PUBLISH:

@@ -149,3 +149,19 @@ void testSubscribeWithWildCards() {
         shouldEqual(subscriber4.messages, [[3], [4], [5], [6], [7]]);
     }
 }
+
+
+void testPlus() {
+    foreach(useCache; [Yes.useCache, No.useCache]) {
+        auto broker = NewMqttBroker!TestMqttSubscriber(useCache);
+        auto subscriber = TestMqttSubscriber();
+
+        broker.publish("foo/bar/baz", [1, 2, 3, 4]);
+        subscriber.messages.shouldBeEmpty;
+
+        broker.subscribe(subscriber, [MqttSubscribe.Topic("foo/bar/+", 0)]);
+        broker.publish("foo/bar/baz", [1, 2, 3, 4]);
+        broker.publish("foo/boogagoo", [9, 8, 7]);
+        subscriber.messages.shouldEqual([[1, 2, 3, 4]]);
+    }
+}

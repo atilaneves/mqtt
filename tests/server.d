@@ -99,6 +99,14 @@ void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in u
     MqttPublish(topic, payload).cerealise!(b => server.newMessage(connection, b));
 }
 
+void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+    MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
+}
+
+void unsubscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isNewMqttSubscriber!S) {
+    MqttUnsubscribe(msgId, topics).cerealise!(b => server.newMessage(connection, b));
+}
+
 void testConnectSmallId() {
    auto server = MqttServer!NewTestMqttConnection();
     ubyte[] bytes = [ 0x10, 0x27, //fixed header
@@ -167,7 +175,6 @@ void testSubscribeWithMessage() {
 }
 
 
-
 void testPingWithMessage() {
     auto server = MqttServer!NewTestMqttConnection();
     auto connection = NewTestMqttConnection();
@@ -175,6 +182,37 @@ void testPingWithMessage() {
     server.newMessage(connection, connectionMsgBytes);
     server.newMessage(connection, cast(ubyte[])[0xc0, 0x00]); //ping request
     const pingResp = connection.lastMsg!MqttPingResp; //shouldn't throw
+}
+
+
+void testUnsubscribe() {
+    auto server = MqttServer!NewTestMqttConnection();
+    auto connection = NewTestMqttConnection();
+
+    server.newMessage(connection, connectionMsgBytes);
+
+    server.subscribe(connection, 42, ["foo/bar/+"]);
+    const suback = connection.lastMsg!MqttSuback;
+
+    server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
+    server.publish(connection, "foo/boogagoo", [9, 8, 7]);
+    shouldEqual(connection.payloads, [[1, 2, 3, 4]]);
+
+    server.unsubscribe(connection, 2, ["boo"]); //doesn't exist, so no effect
+    const unsuback1 = connection.lastMsg!MqttUnsuback;
+    shouldEqual(unsuback1.msgId, 2);
+
+    server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
+    server.publish(connection, "foo/boogagoo", [9, 8, 7]);
+    shouldEqual(connection.payloads, [[1, 2, 3, 4], [1, 2, 3, 4]]);
+
+    server.unsubscribe(connection, 3, ["foo/bar/+"]);
+    const unsuback2 = connection.lastMsg!MqttUnsuback;
+    shouldEqual(unsuback2.msgId, 3);
+
+    server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
+    server.publish(connection, "foo/boogagoo", [9, 8, 7]);
+    shouldEqual(connection.payloads, [[1, 2, 3, 4], [1, 2, 3, 4]]); //shouldn't have changed
 }
 
 ////////////////////////////////////////////////////////////////////////////////old
@@ -232,34 +270,6 @@ class TestMqttConnection {
 
 
 
-void testUnsubscribe() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection;
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-
-    server.subscribe(connection, 42, ["foo/bar/+"]);
-    const suback = connection.lastMsg!MqttSuback;
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff"]);
-
-    server.unsubscribe(connection, 2, ["boo"]); //doesn't exist, so no effect
-    const unsuback1 = connection.lastMsg!MqttUnsuback;
-    shouldEqual(unsuback1.msgId, 2);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff", "interesting stuff"]);
-
-    server.unsubscribe(connection, 3, ["foo/bar/+"]);
-    const unsuback2 = connection.lastMsg!MqttUnsuback;
-    shouldEqual(unsuback2.msgId, 3);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff", "interesting stuff"]); //shouldn't have changed
-}
 
 
 void testUnsubscribeHandle() {
