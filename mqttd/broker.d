@@ -17,6 +17,13 @@ enum isMqttSubscriber(T) = is(typeof((){
     T.init.newMessage("topic", bytes);
 }));
 
+enum isNewMqttSubscriber(T) = is(typeof((){
+    const(ubyte)[] bytes;
+    auto sub = T.init;
+    sub.newMessage(bytes);
+}));
+
+
 template RefType(T) {
     static if(is(T == struct))
         alias RefType = T*;

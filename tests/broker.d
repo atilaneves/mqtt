@@ -12,6 +12,17 @@ struct TestMqttSubscriber {
     static assert(isMqttSubscriber!TestMqttSubscriber);
 }
 
+struct NewTestMqttSubscriber {
+    alias Payload = ubyte[];
+    void newMessage(in ubyte[] bytes) {
+        messages ~= bytes;
+    }
+
+    const(Payload)[] messages;
+
+    static assert(isNewMqttSubscriber!NewTestMqttSubscriber);
+}
+
 void testSubscribe() {
     auto broker = MqttBroker!TestMqttSubscriber();
 
