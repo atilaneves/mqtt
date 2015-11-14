@@ -61,6 +61,10 @@ struct MqttServer(S) if(isNewMqttSubscriber!S) {
         }
     }
 
+    void connectionClosed(ref S connection) {
+        _broker.unsubscribe(connection);
+    }
+
 private:
 
     NewMqttBroker!S _broker;
