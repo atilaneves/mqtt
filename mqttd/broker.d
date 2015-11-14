@@ -38,11 +38,13 @@ struct NewMqttBroker(S) if(isNewMqttSubscriber!S) {
     }
 
     void unsubscribe(ref S subscriber) {
+        unsubscribeImpl(&_tree, subscriber, []);
     }
 
     void unsubscribe(R)(ref S subscriber, R topics)
         if(isInputRange!R && is(ElementType!R == string))
     {
+        unsubscribeImpl(&_tree, subscriber, topics.array);
     }
 
     void publish(in string topic, in ubyte[] payload) {
@@ -70,6 +72,14 @@ private:
         return addOrFindNode(tree.children[part], parts);
     }
 
+    void unsubscribeImpl(Node* tree, ref S subscriber, in string[] topics) {
+        tree.leaves = tree.leaves.filter!(a => a.isSubscriber(subscriber, topics)).array;
+        if(tree.children.length == 0) return;
+        foreach(k, v; tree.children) {
+            unsubscribeImpl(v, subscriber, topics);
+        }
+    }
+
     void publishImpl(R1, R2)(Node* tree, R1 pubParts, R2 bytes)
         if(isTopicRange!R1 && isInputRangeOf!(R2, ubyte))
     {
@@ -83,7 +93,9 @@ private:
                     //So that "finance/#" matches "finance"
                     publishNode(node.children["#"], bytes);
                 }
-                publishNode(node, bytes);
+
+                if(hasOneElement || part == "#") publishNode(node, bytes);
+
                 auto r = pubParts.save;
                 r.popFront;
                 publishImpl(node, r, bytes);
@@ -114,6 +126,11 @@ private struct NewSubscription(S) if(isNewMqttSubscriber!S) {
 
     void newMessage(in ubyte[] bytes) {
         _subscriber.newMessage(bytes);
+    }
+
+    bool isSubscriber(ref S subscriber, in string[] topics) @trusted pure nothrow const {
+        immutable isSameTopic = topics.empty || topics.canFind(_topic);
+        return isSameTopic && &subscriber == _subscriber;
     }
 
     S* _subscriber;
