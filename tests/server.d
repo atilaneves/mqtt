@@ -215,6 +215,30 @@ void testUnsubscribe() {
     shouldEqual(connection.payloads, [[1, 2, 3, 4], [1, 2, 3, 4]]); //shouldn't have changed
 }
 
+void testUnsubscribeHandle() {
+    auto server = MqttServer!NewTestMqttConnection();
+    auto connection = NewTestMqttConnection();
+    server.newMessage(connection, connectionMsgBytes);
+    server.subscribe(connection, 42, ["foo/bar/+"]);
+
+    server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
+    server.publish(connection, "foo/boogagoo", [9, 8, 7]);
+    shouldEqual(connection.payloads, [[1, 2, 3, 4]]);
+
+    ubyte[] bytes = [ 0xa2, 0x0d, //fixed header
+                      0x00, 0x21, //message ID
+                      0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
+        ];
+
+    server.newMessage(connection, bytes);
+    const unsuback = connection.lastMsg!MqttUnsuback;
+    shouldEqual(unsuback.msgId, 33);
+
+    server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
+    server.publish(connection, "foo/boogagoo", [9, 8, 7]);
+    shouldEqual(connection.payloads, [[1, 2, 3, 4]]); //shouldn't have changed
+}
+
 ////////////////////////////////////////////////////////////////////////////////old
 
 
@@ -272,29 +296,6 @@ class TestMqttConnection {
 
 
 
-void testUnsubscribeHandle() {
-    auto server = new CMqttServer!TestMqttConnection();
-    auto connection = new TestMqttConnection();
-    MqttFactory.handleMessage(connectionMsgBytes, server, connection);
-    server.subscribe(connection, 42, ["foo/bar/+"]);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff"]);
-
-    ubyte[] bytes = [ 0xa2, 0x0d, //fixed header
-                      0x00, 0x21, //message ID
-                      0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
-        ];
-
-    MqttFactory.handleMessage(bytes, server, connection);
-    const unsuback = connection.lastMsg!MqttUnsuback;
-    shouldEqual(unsuback.msgId, 33);
-
-    server.publish("foo/bar/baz", "interesting stuff");
-    server.publish("foo/boogagoo", "oh noes!!!");
-    shouldEqual(connection.payloads, ["interesting stuff"]); //shouldn't have changed
-}
 
 void testSubscribeWildCard() {
     import std.conv;
