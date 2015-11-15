@@ -12,16 +12,15 @@
         "vibe-d": "~master",
         "cerealed": "~master"
     },
+    "versions": ["VibeCustomMain"],
     "configurations": [
         {
-            "name": "executable",
-            "versions": ["VibeDefaultMain"]
+            "name": "executable"
         },
         {
             "name": "unittest",
             "targetType": "executable",
             "sourcePaths": ["tests"],
-            "versions": ["VibeCustomMain"],
             "mainSourceFile": "tests/ut.d",
             "excludedSourceFiles": ["mqttd/app.d"],
             "dependencies": {
