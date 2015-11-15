@@ -100,7 +100,8 @@ private:
         return dec.value!MqttFixedHeader.remaining + MqttFixedHeader.SIZE;
     }
 
-    void resetBuffer() pure nothrow {
+    //@trusted because of copy
+    void resetBuffer() @trusted pure nothrow {
         copy(_bytes, _buffer);
         _bytesRead = _bytes.length;
         _bytes = _buffer[0 .. _bytesRead];

@@ -52,7 +52,8 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
 
     void publish(in string topic, in ubyte[] payload) {
         if(_useCache && topic in _cache) {
-            foreach(subscription; _cache[topic]) subscription.newMessage(payload);
+            foreach(subscriber; _cache[topic]) subscriber.newMessage(payload);
+            return;
         }
 
         auto pubParts = topic.splitter("/");
@@ -72,7 +73,7 @@ private:
 
     Flag!"useCache" _useCache;
     Node _tree;
-    Subscription!S[][string] _cache;
+    S*[][string] _cache;
 
     void invalidateCache() {
         if(_useCache) _cache = _cache.init;
@@ -109,12 +110,13 @@ private:
         foreach(part; only(front, "#", "+")) {
             if(part in tree.children) {
                 auto node = tree.children[part];
+
+                if(pubParts.empty || part == "#") publishNode(node, topic, bytes);
+
                 if(pubParts.empty && "#" in node.children) {
                     //So that "finance/#" matches "finance"
                     publishNode(node.children["#"], topic, bytes);
                 }
-
-                if(pubParts.empty || part == "#") publishNode(node, topic, bytes);
 
                 publishImpl(node, pubParts, topic, bytes);
             }
@@ -122,9 +124,9 @@ private:
     }
 
     void publishNode(R)(Node* node, in string topic, R bytes) if(isInputRangeOf!(R, ubyte)) {
-        foreach(subscription; node.leaves) {
+        foreach(ref subscription; node.leaves) {
             subscription.newMessage(bytes);
-            if(_useCache) _cache[topic.idup] ~= subscription;
+            if(_useCache) _cache[topic.idup] ~= subscription._subscriber;
         }
     }
 }

@@ -342,3 +342,7 @@ string getTopic(in ubyte[] bytes) {
     //     }
     // }
 }
+
+MqttType getType(in ubyte[] bytes) {
+    return cast(MqttType)(bytes[0] >> 4);
+}

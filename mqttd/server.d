@@ -23,14 +23,11 @@ struct MqttServer(C) if(isMqttConnection!C) {
     }
 
     void newMessage(R)(ref C connection, R bytes) if(isInputRangeOf!(R, ubyte)) {
-        auto dec = Decerealiser(bytes);
-        immutable fixedHeader = dec.value!MqttFixedHeader;
-        dec.reset(); //to be used deserialising
-
-        switch(fixedHeader.type) with(MqttType) {
+        immutable type = getType(bytes);
+        switch(type) with(MqttType) {
             case CONNECT:
                 auto code = MqttConnack.Code.ACCEPTED;
-                auto connect = dec.value!MqttConnect;
+                auto connect = decerealise!MqttConnect(bytes);
                 if(connect.isBadClientId) {
                     code = MqttConnack.Code.BAD_ID;
                 }
@@ -39,14 +36,14 @@ struct MqttServer(C) if(isMqttConnection!C) {
                 break;
 
             case SUBSCRIBE:
-                auto msg = dec.value!MqttSubscribe;
+                auto msg = decerealise!MqttSubscribe(bytes);
                 _broker.subscribe(connection, msg.topics);
                 const qos = msg.topics.map!(a => a.qos).array;
                 MqttSuback(msg.msgId, qos).cerealise!(b => connection.newMessage(b));
                 break;
 
             case UNSUBSCRIBE:
-                auto msg = dec.value!MqttUnsubscribe;
+                auto msg = decerealise!MqttUnsubscribe(bytes);
                 _broker.unsubscribe(connection, msg.topics);
                 MqttUnsuback(msg.msgId).cerealise!(b => connection.newMessage(b));
                 break;
@@ -65,7 +62,7 @@ struct MqttServer(C) if(isMqttConnection!C) {
                 break;
 
             default:
-                throw new Exception(text("Don't know how to handle message of type ", fixedHeader.type));
+                throw new Exception(text("Don't know how to handle message of type ", type));
         }
     }
 
