@@ -1,12 +1,13 @@
 module mqttd.message;
 
 
-import mqttd.server;
 import cerealed;
 import std.stdio;
 import std.algorithm;
 import std.stdio;
-
+import std.range;
+import std.exception;
+import std.conv;
 
 enum MqttType {
     RESERVED1   = 0,
@@ -317,4 +318,27 @@ struct MqttPingResp {
     @property const(ubyte[]) encode() const {
         return [0xd0, 0x00];
     }
+}
+
+
+string getTopic(in ubyte[] bytes) {
+    //cheat
+    enum offset = 4; //fixed header of 2 bytes + topic len
+    immutable len = bytes[3]; //only works for length <= 127
+    return cast(string)bytes[offset .. offset + len];
+
+    // const(ubyte)[] slice = bytes;
+    // auto dec = Decerealiser(bytes);
+    // const fixedHeader = dec.value!MqttFixedHeader;
+    // enforce(fixedHeader.type == MqttType.PUBLISH,
+    //         text("Cannot get topic from a message of type ", fixedHeader.type));
+
+    // if(fixedHeader.qos) {
+    //     if(fixedHeader.remaining < 7) {
+    //         stderr.writeln("Error: PUBLISH message with QOS but no message ID");
+    //     } else {
+    //         cereal.grain(msgId);
+    //         payloadLen -= 2;
+    //     }
+    // }
 }
