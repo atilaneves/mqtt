@@ -51,11 +51,6 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
     }
 
     void publish(in string topic, in ubyte[] payload) {
-        if(_useCache && topic in _cache) {
-            foreach(subscriber; _cache[topic]) subscriber.newMessage(payload);
-            return;
-        }
-
         auto pubParts = topic.splitter("/");
         publishImpl(&_tree, pubParts, topic, payload);
     }
@@ -102,6 +97,12 @@ private:
     void publishImpl(R1, R2)(Node* tree, R1 pubParts, in string topic, R2 bytes)
         if(isTopicRange!R1 && isInputRangeOf!(R2, ubyte))
     {
+
+        if(_useCache && topic in _cache) {
+            foreach(subscriber; _cache[topic]) subscriber.newMessage(bytes);
+            return;
+        }
+
         if(pubParts.empty) return;
 
         immutable front = pubParts.front;
