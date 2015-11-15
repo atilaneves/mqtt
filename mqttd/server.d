@@ -52,9 +52,7 @@ struct MqttServer(C) if(isMqttConnection!C) {
                 break;
 
             case PUBLISH:
-                auto msg = dec.value!MqttPublish;
-                _broker.publish(msg.topic, bytes);
-                //_broker.publish(getTopic(bytes), bytes);
+                _broker.publish(getTopic(bytes), bytes);
                 break;
 
             case PINGREQ:
