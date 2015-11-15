@@ -5,12 +5,13 @@ import std.stdio;
 import std.typecons;
 
 private __gshared MqttServer!(MqttTcpConnection) gServer;
+private __gshared Flag!"useCache" gUseCache;
 
 shared static this() {
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
-    gServer = typeof(gServer)(No.useCache);
+    gServer = typeof(gServer)(gUseCache);
     listenTCP_s(1883, &accept);
 }
 
@@ -26,8 +27,12 @@ void accept(TCPConnection tcpConnection) {
 }
 
 
-int main()
-{
+int main(string[] args) {
+    if(args.length > 1) gUseCache = Yes.useCache;
+    return vibemain();
+}
+
+int vibemain() {
     import vibe.core.args : finalizeCommandLineOptions;
     import vibe.core.core : runEventLoop, lowerPrivileges;
     import vibe.core.log;
