@@ -10,7 +10,7 @@ shared static this() {
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
-    gServer = typeof(gServer)(Yes.useCache);
+    gServer = typeof(gServer)(No.useCache);
     listenTCP_s(1883, &accept);
 }
 
