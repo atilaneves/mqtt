@@ -322,9 +322,9 @@ struct MqttPingResp {
 
 
 string getTopic(in ubyte[] bytes) {
-    //cheat
+    //only works if there's no msg id
     enum offset = 4; //fixed header of 2 bytes + topic len
-    immutable len = bytes[3]; //only works for length <= 127
+    immutable len = (bytes[2] << 8) + bytes[3];
     return cast(string)bytes[offset .. offset + len];
 
     // const(ubyte)[] slice = bytes;

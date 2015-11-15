@@ -54,6 +54,7 @@ struct MqttServer(C) if(isMqttConnection!C) {
             case PUBLISH:
                 auto msg = dec.value!MqttPublish;
                 _broker.publish(msg.topic, bytes);
+                //_broker.publish(getTopic(bytes), bytes);
                 break;
 
             case PINGREQ:
@@ -68,6 +69,10 @@ struct MqttServer(C) if(isMqttConnection!C) {
             default:
                 throw new Exception(text("Don't know how to handle message of type ", fixedHeader.type));
         }
+    }
+
+    @property useCache(Flag!"useCache" useIt) {
+        _broker.useCache = useIt;
     }
 
 

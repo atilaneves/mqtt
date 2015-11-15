@@ -9,7 +9,7 @@ import std.range;
 import std.traits;
 
 
-enum isTopicRange(R) = isForwardRange!R && is(Unqual!(ElementType!R) == string);
+enum isTopicRange(R) = isInputRange!R && is(Unqual!(ElementType!R) == string);
 
 enum isInputRangeOf(R, T) = isInputRange!R && is(Unqual!(ElementType!R) == T);
 
@@ -59,6 +59,10 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
         publishImpl(&_tree, pubParts, topic, payload);
     }
 
+    @property useCache(Flag!"useCache" useIt) {
+        _useCache = useIt;
+    }
+
 private:
 
     static struct Node {
@@ -99,20 +103,20 @@ private:
     {
         if(pubParts.empty) return;
 
-        foreach(part; only(pubParts.front, "#", "+")) {
+        immutable front = pubParts.front;
+        pubParts.popFront;
+
+        foreach(part; only(front, "#", "+")) {
             if(part in tree.children) {
                 auto node = tree.children[part];
-                immutable hasOneElement = hasOneElement(pubParts);
-                if(hasOneElement && "#" in node.children) {
+                if(pubParts.empty && "#" in node.children) {
                     //So that "finance/#" matches "finance"
                     publishNode(node.children["#"], topic, bytes);
                 }
 
-                if(hasOneElement || part == "#") publishNode(node, topic, bytes);
+                if(pubParts.empty || part == "#") publishNode(node, topic, bytes);
 
-                auto r = pubParts.save;
-                r.popFront;
-                publishImpl(node, r, topic, bytes);
+                publishImpl(node, pubParts, topic, bytes);
             }
         }
     }
@@ -122,12 +126,6 @@ private:
             subscription.newMessage(bytes);
             if(_useCache) _cache[topic.idup] ~= subscription;
         }
-    }
-
-    static bool hasOneElement(R)(R range) if(isTopicRange!R) {
-        auto r = range.save;
-        r.popFront;
-        return r.empty;
     }
 }
 
