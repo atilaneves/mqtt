@@ -1,2 +1,10 @@
 language: d
 sudo: false
+install:
+  - gem install bundler
+  - bundle install
+
+script:
+  - dub test
+  - dub build
+  - cucumber --tags ~@wip

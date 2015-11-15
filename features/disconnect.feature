@@ -7,6 +7,7 @@ Feature: Disconnect
     When I send a DISCONNECT MQTT message
     Then the server should close the connection
 
+  @wip
   Scenario: Disconnect with one subscription
     Given I have connected to the broker on port 1883
     When I successfully subscribe to topic "/foo/bar"
@@ -15,6 +16,7 @@ Feature: Disconnect
     When I send a DISCONNECT MQTT message
     Then the server should close the connection
 
+  @wip
   Scenario: Disconnect then connect again
     Given I have connected to the broker on port 1883
     When I successfully subscribe to topic "/foo/bar"

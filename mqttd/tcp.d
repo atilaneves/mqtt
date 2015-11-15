@@ -1,36 +1,33 @@
 module mqttd.tcp;
 
 import mqttd.server;
-import mqttd.factory;
 import mqttd.message;
 import mqttd.stream;
 import mqttd.message;
 import vibe.d;
 import std.stdio;
+import std.conv;
 
+struct MqttTcpConnection {
 
-class MqttTcpConnection {
-    mixin MqttConnection;
-
-    this(MqttServer!(typeof(this)) server, TCPConnection tcpConnection) {
-        _server = server;
+    this(TCPConnection tcpConnection) {
         _tcpConnection = tcpConnection;
         _connected = true;
-        enum bufferSize = 1024 * 16;
+        enum bufferSize = 1024 * 512;
         _stream = MqttStream(bufferSize);
     }
 
-    final void read(ubyte[] bytes) {
+    void read(ubyte[] bytes) {
         _tcpConnection.read(bytes);
     }
 
-    final void write(in ubyte[] bytes) {
+    void newMessage(in ubyte[] bytes) {
         if(connected) {
             _tcpConnection.write(bytes);
         }
     }
 
-    final void run() {
+    void run(ref MqttServer!MqttTcpConnection server) {
         while(connected) {
             if(!_tcpConnection.waitForData(60.seconds) ) {
                 stderr.writeln("Persistent connection timeout!");
@@ -38,33 +35,42 @@ class MqttTcpConnection {
                 break;
             }
 
-            read();
+            read(server);
         }
         _connected = false;
     }
 
-    final @property bool connected() const {
+    @property bool connected() const {
         return _tcpConnection.connected && _connected;
     }
 
-    final void disconnect() {
+    void disconnect() {
         _connected = false;
     }
 
 private:
 
-    MqttServer!(typeof(this)) _server;
     TCPConnection _tcpConnection;
     bool _connected;
     MqttStream _stream;
 
-    final void read() {
+    static void foo() {
+        ubyte[] bytes;
+        MqttTcpConnection.init.read(bytes);
+    }
+
+    void read(ref MqttServer!MqttTcpConnection server) {
         while(connected && !_tcpConnection.empty) {
+            if(_tcpConnection.leastSize > _stream.bufferSize) {
+                throw new Exception(
+                    text("Too many bytes (", _tcpConnection.leastSize,
+                         " for puny stream buffer (", _stream.bufferSize, ")"));
+            }
             _stream.read(this, _tcpConnection.leastSize);
-            while(_stream.hasMessages)
-                MqttFactory.handleMessage(_stream.popNextMessageBytes, _server, this);
+            _stream.handleMessages(server, this);
         }
     }
 
     static assert(isMqttConnection!MqttTcpConnection);
+    static assert(isMqttInput!MqttTcpConnection);
 }

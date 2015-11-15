@@ -9,5 +9,6 @@ int main(string[] args) {
         "tests.broker",
         "tests.server",
         "tests.stream",
+        "tests.message",
         );
 }

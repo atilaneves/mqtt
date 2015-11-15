@@ -2,7 +2,7 @@ module mqttd.stream;
 
 import mqttd.server;
 import mqttd.message;
-import mqttd.factory;
+import mqttd.broker;
 import cerealed.decerealiser;
 import std.stdio;
 import std.conv;
@@ -15,7 +15,15 @@ version(Win32) {
     alias unsigned = ulong;
 }
 
+
+enum isMqttInput(T) = is(typeof(() {
+    ubyte[] bytes;
+    auto t = T.init;
+    t.read(bytes);
+}));
+
 @safe:
+
 
 struct MqttStream {
 
@@ -46,6 +54,7 @@ struct MqttStream {
         updateLastMessageSize;
     }
 
+
     bool hasMessages() pure nothrow {
         return _lastMessageSize >= MqttFixedHeader.SIZE && _bytes.length >= _lastMessageSize;
     }
@@ -58,6 +67,14 @@ struct MqttStream {
 
         updateLastMessageSize;
         return ret;
+    }
+
+    void handleMessages(T)(ref MqttServer!T server, ref T connection) @trusted if(isMqttSubscriber!T) {
+        while(hasMessages) server.newMessage(connection, popNextMessageBytes);
+    }
+
+    auto bufferSize() const pure nothrow @safe {
+        return _buffer.length;
     }
 
 private:
@@ -83,7 +100,8 @@ private:
         return dec.value!MqttFixedHeader.remaining + MqttFixedHeader.SIZE;
     }
 
-    void resetBuffer() pure nothrow {
+    //@trusted because of copy
+    void resetBuffer() @trusted pure nothrow {
         copy(_bytes, _buffer);
         _bytesRead = _bytes.length;
         _bytes = _buffer[0 .. _bytesRead];
