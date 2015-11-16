@@ -8,13 +8,17 @@ import std.typecons;
 
 struct TestMqttSubscriber {
     alias Payload = ubyte[];
+
+    static int sIndex;
     void newMessage(in ubyte[] bytes) {
+        if(!index) index = ++sIndex;
         import std.stdio;
-        writeln("new message: ", bytes);
+        writeln("New message: ", bytes, ", index: ", index);
         messages ~= bytes;
     }
 
     const(Payload)[] messages;
+    int index;
 
     static assert(isMqttSubscriber!TestMqttSubscriber);
 }
