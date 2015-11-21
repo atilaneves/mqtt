@@ -66,7 +66,7 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
 private:
 
     static struct Node {
-        Node*[immutable(string)] children;
+        Node*[string] children;
         Subscription!S[] leaves;
     }
 
