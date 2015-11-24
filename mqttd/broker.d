@@ -7,7 +7,7 @@ import std.array;
 import std.typecons;
 import std.range;
 import std.traits;
-
+import mqttd.aa;
 
 enum isTopicRange(R) = isInputRange!R && is(Unqual!(ElementType!R) == string);
 
@@ -51,10 +51,15 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
     }
 
     void publish(in string topic, in ubyte[] payload) {
-        if(_useCache && topic in _cache) {
-            foreach(subscriber; _cache[topic]) subscriber.newMessage(payload);
-            return;
+        if(_useCache) {
+            S*[] empty;
+            auto subscribers = _cache.get(topic, empty);
+            if(subscribers.length) {
+                foreach(subscriber; subscribers) subscriber.newMessage(payload);
+                return;
+            }
         }
+
         auto pubParts = topic.splitter("/");
         publishImpl(&_tree, pubParts, topic, payload);
     }
@@ -72,7 +77,8 @@ private:
 
     Flag!"useCache" _useCache;
     Node _tree;
-    S*[][string] _cache;
+    //S*[][string] _cache;
+    AA!(S*[], 1200) _cache;
 
     void invalidateCache() {
         if(_useCache) _cache = _cache.init;
