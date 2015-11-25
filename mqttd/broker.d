@@ -108,9 +108,8 @@ private:
         pubParts.popFront;
 
         foreach(part; only(front, "#", "+")) {
-            if(part in tree.children) {
-                auto node = tree.children[part];
-
+            auto node = tree.children.get(part, null);
+            if(node) {
                 if(pubParts.empty || part == "#") publishNode(node, topic, bytes);
 
                 if(pubParts.empty && "#" in node.children) {
