@@ -124,6 +124,7 @@ private:
         }
 
         void insert(in string key, Node* node) {
+            if(key in this) return;
             switch(key) {
             case "+":
                 oneNode = Entry(key, node);
