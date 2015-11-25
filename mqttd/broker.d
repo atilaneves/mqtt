@@ -65,8 +65,67 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
 
 private:
 
+    static struct PartToNodes {
+        static struct Entry {
+            string key;
+            Node* node;
+        }
+
+        Entry oneNode;  //+
+        Entry manyNode; //#
+        Node*[string] otherNodes;
+
+        Node** opBinaryRight(string op)(in string key) if(op == "in") {
+            switch(key) {
+            case "+":
+                return oneNode.node is null ? null : &oneNode.node;
+            case "#":
+                return manyNode.node is null ? null : &manyNode.node;
+            default:
+                return key in otherNodes;
+            }
+        }
+
+        ref Node* opIndex(in string key) pure nothrow @safe {
+            switch(key) {
+            case "+":
+                return oneNode.node;
+            case "#":
+                return manyNode.node;
+            default:
+                return otherNodes[key];
+            }
+        }
+
+        ulong length() const pure nothrow @safe {
+            auto length = otherNodes.length;
+            if(oneNode.node) ++length;
+            if(manyNode.node) ++length;
+            return length;
+        }
+
+        int opApply(int delegate(ref string, ref Node*) dg) {
+            {
+                immutable stop = dg(oneNode.key, oneNode.node);
+                if(stop) return stop;
+            }
+            {
+                immutable stop = dg(manyNode.key, manyNode.node);
+                if(stop) return stop;
+            }
+
+            foreach(k, v; otherNodes) {
+                immutable stop = dg(k, v);
+                if(stop) return stop;
+            }
+
+            return 0;
+        }
+    }
+
     static struct Node {
         Node*[string] children;
+        //PartToNodes children;
         Subscription!S[] leaves;
     }
 
@@ -108,8 +167,9 @@ private:
         pubParts.popFront;
 
         foreach(part; only(front, "#", "+")) {
-            auto node = tree.children.get(part, null);
-            if(node) {
+            auto nodePtr = part in tree.children;
+            if(nodePtr) {
+                auto node = *nodePtr;
                 if(pubParts.empty || part == "#") publishNode(node, topic, bytes);
 
                 if(pubParts.empty && "#" in node.children) {
