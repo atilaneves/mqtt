@@ -174,16 +174,17 @@ private:
         }
     }
 
-    void publishImpl(R1, R2)(Node* tree, R1 pubParts, in string topic, R2 bytes)
-        if(isTopicRange!R1 && isInputRangeOf!(R2, ubyte))
+    void publishImpl(R1)(Node* tree, R1 pubParts, in string topic, in ubyte[] bytes)
+        if(isTopicRange!R1)
     {
+        static string[3] partsToCheck = ["", "#", "+"];
 
         if(pubParts.empty) return;
 
-        immutable front = pubParts.front;
+        partsToCheck[0] = pubParts.front;
         pubParts.popFront;
 
-        foreach(part; only(front, "#", "+")) {
+        foreach(part; partsToCheck) {
             auto nodePtr = part in tree.children;
             if(nodePtr) {
                 auto node = *nodePtr;
