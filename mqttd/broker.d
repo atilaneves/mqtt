@@ -65,6 +65,17 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
 
 private:
 
+    enum PartType {
+        One, //+
+        Many, //#
+        Other, //anything else
+    }
+
+    static struct FastPart {
+        PartType type;
+        string key;
+    }
+
     static struct PartToNodes {
         static struct Entry {
             string key;
@@ -83,6 +94,17 @@ private:
                 return manyNode.node is null ? null : &manyNode.node;
             default:
                 return key in otherNodes;
+            }
+        }
+
+        Node** opBinaryRight(string op)(in FastPart fast) if(op == "in") {
+            final switch(fast.type) with(PartType) {
+            case One:
+                return oneNode.node is null ? null : &oneNode.node;
+            case Many:
+                return manyNode.node is null ? null : &manyNode.node;
+            case Other:
+                return fast.key in otherNodes;
             }
         }
 
@@ -140,7 +162,6 @@ private:
     }
 
     static struct Node {
-        //Node*[string] children;
         PartToNodes children;
         Subscription!S[] leaves;
     }
@@ -158,7 +179,6 @@ private:
 
         //create if not already here
         const part = parts.front.idup;
-        //if(part !in tree.children) tree.children[part] = new Node;
         tree.children.insert(part, new Node);
 
         parts.popFront;
@@ -177,20 +197,20 @@ private:
     void publishImpl(R1)(Node* tree, R1 pubParts, in string topic, in ubyte[] bytes)
         if(isTopicRange!R1)
     {
-        static string[3] partsToCheck = ["", "#", "+"];
+        static FastPart[3] partsToCheck = [FastPart(PartType.Other), FastPart(PartType.Many), FastPart(PartType.One)];
 
         if(pubParts.empty) return;
 
-        partsToCheck[0] = pubParts.front;
+        partsToCheck[0].key = pubParts.front;
         pubParts.popFront;
 
         foreach(part; partsToCheck) {
             auto nodePtr = part in tree.children;
             if(nodePtr) {
                 auto node = *nodePtr;
-                if(pubParts.empty || part == "#") publishNode(node, topic, bytes);
+                if(pubParts.empty || part.type == PartType.Many) publishNode(node, topic, bytes);
 
-                if(pubParts.empty && "#" in node.children) {
+                if(pubParts.empty && FastPart(PartType.Many) in node.children) {
                     //So that "finance/#" matches "finance"
                     publishNode(node.children["#"], topic, bytes);
                 }

@@ -49,9 +49,9 @@ struct MqttServer(C) if(isMqttConnection!C) {
                 break;
 
             case PUBLISH:
-                auto msg = decerealise!MqttPublish(bytes);
-                _broker.publish(msg.topic, bytes);
-                //_broker.publish(getTopic(bytes), bytes); //incorrect but fast
+                // auto msg = decerealise!MqttPublish(bytes);
+                // _broker.publish(msg.topic, bytes);
+                _broker.publish(getTopic(bytes), bytes); //incorrect but fast
                 break;
 
             case PINGREQ:
