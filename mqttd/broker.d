@@ -93,6 +93,7 @@ private:
             case "#":
                 return manyNode.node;
             default:
+                if(key !in otherNodes) otherNodes[key] = null;
                 return otherNodes[key];
             }
         }
@@ -105,11 +106,11 @@ private:
         }
 
         int opApply(int delegate(ref string, ref Node*) dg) {
-            {
+            if(oneNode.node) {
                 immutable stop = dg(oneNode.key, oneNode.node);
                 if(stop) return stop;
             }
-            {
+            if(manyNode.node) {
                 immutable stop = dg(manyNode.key, manyNode.node);
                 if(stop) return stop;
             }
@@ -121,11 +122,25 @@ private:
 
             return 0;
         }
+
+        void insert(in string key, Node* node) {
+            switch(key) {
+            case "+":
+                oneNode = Entry(key, node);
+                break;
+            case "#":
+                manyNode = Entry(key, node);
+                break;
+            default:
+                otherNodes[key] = node;
+                break;
+            }
+        }
     }
 
     static struct Node {
-        Node*[string] children;
-        //PartToNodes children;
+        //Node*[string] children;
+        PartToNodes children;
         Subscription!S[] leaves;
     }
 
@@ -142,7 +157,8 @@ private:
 
         //create if not already here
         const part = parts.front.idup;
-        if(part !in tree.children) tree.children[part] = new Node;
+        //if(part !in tree.children) tree.children[part] = new Node;
+        tree.children.insert(part, new Node);
 
         parts.popFront;
         return addOrFindNode(tree.children[part], parts);
