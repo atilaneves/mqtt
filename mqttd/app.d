@@ -10,7 +10,7 @@ shared static this() {
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
-    gServer = typeof(gServer)(Yes.useCache);
+    gServer = typeof(gServer)(No.useCache);
     listenTCP_s(1883, &accept);
 }
 
@@ -28,8 +28,8 @@ void accept(TCPConnection tcpConnection) {
 
 int main(string[] args) {
     if(args.length > 1) {
-        writeln("Disabling the cache");
-        gServer.useCache = No.useCache;
+        writeln("Enabling the cache");
+        gServer.useCache = Yes.useCache;
     }
     return vibemain();
 }
