@@ -24,7 +24,7 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
 
 struct TestMqttConnection {
     void newMessage(in ubyte[] payload) {
-        writeln(&this, "  message: ", payload);
+        writelnUt(&this, "  message: ", payload);
         auto dec = Decerealiser(payload);
         immutable fixedHeader = dec.value!MqttFixedHeader;
         dec.reset;
@@ -301,7 +301,7 @@ void testSubscribeWildCard() {
     }
 
     foreach(ref req; reqs) {
-        writeln("checking payloads of ", &req);
+        writelnUt("checking payloads of ", &req);
         req.payloads.shouldEqual([0, 1, 2, 3].repeat.take(numMessages));
     }
 

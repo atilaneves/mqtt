@@ -12,7 +12,7 @@ import cerealed;
 
 struct TestMqttConnection {
     void newMessage(in ubyte[] payload) {
-        writeln(&this, "  message: ", payload);
+        writelnUt(&this, "  message: ", payload);
         auto dec = Decerealiser(payload);
         immutable fixedHeader = dec.value!MqttFixedHeader;
         dec.reset;

@@ -9,22 +9,24 @@
     "importPaths": ["."],
     "targetType": "executable",
     "dependencies": {
-        "vibe-d": "~master",
         "cerealed": "~master"
     },
     "versions": ["VibeCustomMain"],
     "configurations": [
         {
-            "name": "executable"
+            "name": "executable",
+            "dependencies": {
+                "vibe-d": "~master"
+            }
         },
         {
             "name": "unittest",
             "targetType": "executable",
             "sourcePaths": ["tests"],
             "mainSourceFile": "tests/ut.d",
-            "excludedSourceFiles": ["mqttd/app.d"],
+            "excludedSourceFiles": ["mqttd/app.d", "mqttd/tcp.d"],
             "dependencies": {
-                "unit-threaded": "~>0.5.3"
+                "unit-threaded": "~>0.5.7"
             }
         }
     ]
