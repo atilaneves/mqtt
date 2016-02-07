@@ -46,6 +46,7 @@ struct MqttTcpConnection {
 
     void disconnect() {
         _connected = false;
+        _tcpConnection.close();
     }
 
 private:
