@@ -3,6 +3,7 @@ sudo: false
 install:
   - gem install bundler
   - bundle install
+  - mkdir bin
 
 script:
   - dub test

@@ -23,7 +23,8 @@
             "name": "unittest",
             "targetType": "executable",
             "sourcePaths": ["tests"],
-            "mainSourceFile": "tests/ut.d",
+            "preBuildCommands": ["dub fetch dtest && dub run dtest -- -Isrc -f bin/ut.d"],
+            "mainSourceFile": "bin/ut.d",
             "excludedSourceFiles": ["mqttd/app.d", "mqttd/tcp.d"],
             "dependencies": {
                 "unit-threaded": "~>0.5.7"
