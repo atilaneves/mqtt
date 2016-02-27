@@ -4,7 +4,7 @@ require 'rspec'
 
 class MqttServer
   def initialize
-    @proc = IO.popen('./mqtt')
+    @proc = IO.popen('./bin/mqtt')
   end
 
   def finalize
