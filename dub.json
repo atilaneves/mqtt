@@ -10,23 +10,23 @@
     "targetType": "executable",
     "targetPath": "bin",
     "dependencies": {
-        "cerealed": "~master"
+        "cerealed": "~>0.6.4"
     },
     "versions": ["VibeCustomMain"],
     "configurations": [
         {
             "name": "executable",
             "dependencies": {
-                "vibe-d": "~master"
+                "vibe-d": "~>0.7.29-alpha.2"
             }
         },
         {
             "name": "unittest",
             "targetType": "executable",
             "sourcePaths": ["tests"],
-            "mainSourceFile": "bin/ut.d",
-            "preBuildCommands": ["dub run unit-threaded -c gen_ut_main -- -f bin/ut.d tests"],
             "excludedSourceFiles": ["mqttd/app.d", "mqttd/tcp.d"],
+            "preBuildCommands": ["dub run unit-threaded -c gen_ut_main -- -f bin/ut.d tests"],
+            "mainSourceFile": "bin/ut.d",
             "dependencies": {
                 "unit-threaded": "~>0.6.0"
             }
