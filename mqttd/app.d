@@ -10,8 +10,9 @@ shared static this() {
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
+    import std.functional: toDelegate;
     gServer = typeof(gServer)(No.useCache);
-    listenTCP_s(1883, &accept);
+    listenTCP(1883, toDelegate(&accept));
 }
 
 
@@ -26,8 +27,8 @@ void accept(TCPConnection tcpConnection) @trusted nothrow {
         auto mqttConnection = MqttTcpConnection(tcpConnection);
         mqttConnection.run(gServer);
         if(tcpConnection.connected) tcpConnection.close();
-    } catch(Exception _)
-        assert(0);
+    } catch(Exception e)
+        error("Fatal error: ", e.msg);
 }
 
 
