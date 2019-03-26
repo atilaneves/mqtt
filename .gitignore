@@ -2,7 +2,6 @@
 *.o
 *.log
 *.def
-dub.selections.json
 perf.data
 perf.data.old
 bin

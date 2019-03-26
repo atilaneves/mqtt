@@ -15,14 +15,19 @@ shared static this() {
 }
 
 
-void accept(TCPConnection tcpConnection) {
-    if (!tcpConnection.waitForData(10.seconds())) {
-        stderr.writeln("Client didn't send the initial request in a timely manner. Closing connection.");
-    }
+void accept(TCPConnection tcpConnection) @trusted nothrow {
+    import mqttd.log: error;
 
-    auto mqttConnection = MqttTcpConnection(tcpConnection);
-    mqttConnection.run(gServer);
-    if(tcpConnection.connected) tcpConnection.close();
+    try {
+        if (!tcpConnection.waitForData(10.seconds())) {
+            error("Client didn't send the initial request in a timely manner. Closing connection.");
+        }
+
+        auto mqttConnection = MqttTcpConnection(tcpConnection);
+        mqttConnection.run(gServer);
+        if(tcpConnection.connected) tcpConnection.close();
+    } catch(Exception _)
+        assert(0);
 }
 
 

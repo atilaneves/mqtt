@@ -10,27 +10,28 @@ import std.conv;
 
 struct MqttTcpConnection {
 
-    this(TCPConnection tcpConnection) {
+    this(TCPConnection tcpConnection) @safe nothrow {
         _tcpConnection = tcpConnection;
         _connected = true;
         enum bufferSize = 1024 * 512;
         _stream = MqttStream(bufferSize);
     }
 
-    void read(ubyte[] bytes) {
+    void read(ubyte[] bytes) @safe {
         _tcpConnection.read(bytes);
     }
 
-    void newMessage(in ubyte[] bytes) {
+    void newMessage(in ubyte[] bytes) @safe {
         if(connected) {
             _tcpConnection.write(bytes);
         }
     }
 
-    void run(ref MqttServer!MqttTcpConnection server) {
+    void run(ref MqttServer!MqttTcpConnection server) @safe {
+        import mqttd.log: error;
         while(connected) {
             if(!_tcpConnection.waitForData(60.seconds) ) {
-                stderr.writeln("Persistent connection timeout!");
+                error("Persistent connection timeout!");
                 _connected = false;
                 break;
             }
@@ -40,11 +41,11 @@ struct MqttTcpConnection {
         _connected = false;
     }
 
-    @property bool connected() const {
+    @property bool connected() @safe const {
         return _tcpConnection.connected && _connected;
     }
 
-    void disconnect() {
+    void disconnect() @safe {
         _connected = false;
         _tcpConnection.close();
     }
@@ -60,7 +61,7 @@ private:
         MqttTcpConnection.init.read(bytes);
     }
 
-    void read(ref MqttServer!MqttTcpConnection server) {
+    void read(ref MqttServer!MqttTcpConnection server) @safe {
         while(connected && !_tcpConnection.empty) {
             if(_tcpConnection.leastSize > _stream.bufferSize) {
                 throw new Exception(
