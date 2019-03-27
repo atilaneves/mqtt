@@ -15,7 +15,7 @@ install:
   - bundle install
 
 script:
-  - dub test --build=unittest-cov --compiler=${DC} -c asan
+  - dub test --build=unittest-cov --compiler=${DC}
   - dub build --compiler=${DC}
   - cucumber --tags ~@wip
 
