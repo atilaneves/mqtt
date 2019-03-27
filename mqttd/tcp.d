@@ -1,14 +1,11 @@
 module mqttd.tcp;
 
-import mqttd.server;
-import mqttd.message;
-import mqttd.stream;
-import mqttd.message;
-import vibe.d;
-import std.stdio;
-import std.conv;
 
 struct MqttTcpConnection {
+
+    import mqttd.server: MqttServer, isMqttConnection;
+    import mqttd.stream: MqttStream, isMqttInput;
+    import vibe.d: TCPConnection;
 
     this(TCPConnection tcpConnection) @safe nothrow {
         _tcpConnection = tcpConnection;
@@ -29,6 +26,8 @@ struct MqttTcpConnection {
 
     void run(ref MqttServer!MqttTcpConnection server) @safe {
         import mqttd.log: error;
+        import std.datetime: seconds;
+
         while(connected) {
             if(!_tcpConnection.waitForData(60.seconds) ) {
                 error("Persistent connection timeout!");
@@ -38,6 +37,7 @@ struct MqttTcpConnection {
 
             read(server);
         }
+
         _connected = false;
     }
 
@@ -56,12 +56,9 @@ private:
     bool _connected;
     MqttStream _stream;
 
-    static void foo() {
-        ubyte[] bytes;
-        MqttTcpConnection.init.read(bytes);
-    }
-
     void read(ref MqttServer!MqttTcpConnection server) @safe {
+        import std.conv: text;
+
         while(connected && !_tcpConnection.empty) {
             if(_tcpConnection.leastSize > _stream.bufferSize) {
                 throw new Exception(
