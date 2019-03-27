@@ -24,7 +24,7 @@ struct MqttTcpConnection {
         }
     }
 
-    void run(ref MqttServer!MqttTcpConnection server) @safe {
+    void run(ref MqttServer!(typeof(this)) server) @safe {
         import mqttd.log: error;
         import std.datetime: seconds;
 
@@ -56,7 +56,7 @@ private:
     bool _connected;
     MqttStream _stream;
 
-    void read(ref MqttServer!MqttTcpConnection server) @safe {
+    void read(ref MqttServer!(typeof(this)) server) @safe {
         import std.conv: text;
 
         while(connected && !_tcpConnection.empty) {
@@ -70,6 +70,6 @@ private:
         }
     }
 
-    static assert(isMqttConnection!MqttTcpConnection);
-    static assert(isMqttInput!MqttTcpConnection);
+    static assert(isMqttConnection!(typeof(this)));
+    static assert(isMqttInput!(typeof(this)));
 }
