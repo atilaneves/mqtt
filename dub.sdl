@@ -1,0 +1,26 @@
+name "mqtt"
+description "MQTT broker"
+copyright "Copyright (C) 2013-2019 Atila Neves"
+authors "Atila Neves"
+license "BSD 3-clause"
+
+targetType "executable"
+targetPath "bin"
+sourcePaths "mqttd"
+importPaths "."
+
+dependency "cerealed" version="~>0.6.4"
+
+versions "VibeCustomMain"
+
+configuration "executable" {
+    dependency "vibe-d" version="*"
+}
+
+configuration "unittest" {
+    targetName "ut"
+    sourcePaths "tests"
+    mainSourceFile "tests/main.d"
+    excludedSourceFiles "mqttd/main.d" "mqttd/runtime.d" "mqttd/tcp.d"
+    dependency "unit-threaded" version="*"
+}
