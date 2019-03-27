@@ -70,7 +70,7 @@ struct MqttStream {
     }
 
     void handleMessages(T)(ref MqttServer!T server, ref T connection) @trusted if(isMqttSubscriber!T) {
-        while(hasMessages) server.newMessage(connection, popNextMessageBytes);
+        while(hasMessages) server.send(connection, popNextMessageBytes);
     }
 
     auto bufferSize() const pure nothrow @safe {

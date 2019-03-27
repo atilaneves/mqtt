@@ -23,7 +23,7 @@ const (ubyte)[] connectionMsgBytes() pure nothrow {
 }
 
 struct TestMqttConnection {
-    void newMessage(in ubyte[] payload) {
+    void send(in ubyte[] payload) {
         writelnUt(&this, "  message: ", payload);
         auto dec = Decerealiser(payload);
         immutable fixedHeader = dec.value!MqttFixedHeader;
@@ -72,7 +72,7 @@ void testConnect() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
     connection.connected.shouldBeFalse;
-    server.newMessage(connection, connectionMsgBytes);
+    server.send(connection, connectionMsgBytes);
     connection.code.shouldEqual(MqttConnack.Code.ACCEPTED);
     connection.connected.shouldBeTrue;
 }
@@ -93,7 +93,7 @@ void testConnectBigId() {
         ];
 
     auto connection = TestMqttConnection();
-    server.newMessage(connection, bytes);
+    server.send(connection, bytes);
     connection.connect.isBadClientId.shouldBeTrue;
     connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
     connection.connected.shouldBeFalse;
@@ -115,22 +115,22 @@ void testConnectSmallId() {
         ];
 
     auto connection = TestMqttConnection();
-    server.newMessage(connection, bytes);
+    server.send(connection, bytes);
     connection.connect.isBadClientId.shouldBeTrue;
     connection.code.shouldEqual(MqttConnack.Code.BAD_ID);
     connection.connected.shouldBeFalse;
 }
 
 void publish(S)(ref MqttServer!S server, ref S connection, in string topic, in ubyte[] payload) if(isMqttSubscriber!S) {
-    MqttPublish(topic, payload).cerealise!(b => server.newMessage(connection, b));
+    MqttPublish(topic, payload).cerealise!(b => server.send(connection, b));
 }
 
 void subscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isMqttSubscriber!S) {
-    MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.newMessage(connection, b));
+    MqttSubscribe(msgId, topics.map!(a => MqttSubscribe.Topic(a, 0)).array).cerealise!(b => server.send(connection, b));
 }
 
 void unsubscribe(S)(ref MqttServer!S server, ref S connection, in ushort msgId, in string[] topics) if(isMqttSubscriber!S) {
-    MqttUnsubscribe(msgId, topics).cerealise!(b => server.newMessage(connection, b));
+    MqttUnsubscribe(msgId, topics).cerealise!(b => server.send(connection, b));
 }
 
 
@@ -138,7 +138,7 @@ void testSubscribeWithMessage() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
 
-    server.newMessage(connection, connectionMsgBytes);
+    server.send(connection, connectionMsgBytes);
     connection.connected.shouldBeTrue;
 
     server.publish(connection, "foo/bar/baz", [1, 2, 3, 4, 5, 6]);
@@ -152,7 +152,7 @@ void testSubscribeWithMessage() {
                       0x02, //qos
         ];
 
-    server.newMessage(connection, bytes);
+    server.send(connection, bytes);
     const suback = connection.lastMsg!MqttSuback;
     shouldEqual(suback.msgId, 0x21);
     shouldEqual(suback.qos, [1, 2]);
@@ -162,21 +162,21 @@ void testSubscribeWithMessage() {
               0x00, 0x21, //message ID
               1, 2, 3, 4 //payload
         ];
-    server.newMessage(connection, bytes);
+    server.send(connection, bytes);
 
     bytes = [ 0x3c, 0x0d, //fixed header
               0x00, 0x06, 's', 'e', 'c', 'o', 'n', 'd',//topic name
               0x00, 0x21, //message ID
               9, 8, 7//payload
         ];
-    server.newMessage(connection, bytes); //publish
+    server.send(connection, bytes); //publish
 
     bytes = [ 0x3c, 0x0c, //fixed header
               0x00, 0x05, 't', 'h', 'i', 'r', 'd',//topic name
               0x00, 0x21, //message ID
               2, 4, 6, //payload
         ];
-    server.newMessage(connection, bytes); //publish
+    server.send(connection, bytes); //publish
 
 
     shouldEqual(connection.payloads, [[1, 2, 3, 4], [9, 8, 7]]);
@@ -187,8 +187,8 @@ void testPingWithMessage() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
 
-    server.newMessage(connection, connectionMsgBytes);
-    server.newMessage(connection, cast(ubyte[])[0xc0, 0x00]); //ping request
+    server.send(connection, connectionMsgBytes);
+    server.send(connection, cast(ubyte[])[0xc0, 0x00]); //ping request
     const pingResp = connection.lastMsg!MqttPingResp; //shouldn't throw
 }
 
@@ -197,7 +197,7 @@ void testUnsubscribe() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
 
-    server.newMessage(connection, connectionMsgBytes);
+    server.send(connection, connectionMsgBytes);
 
     server.subscribe(connection, 42, ["foo/bar/+"]);
     const suback = connection.lastMsg!MqttSuback;
@@ -226,7 +226,7 @@ void testUnsubscribe() {
 void testUnsubscribeHandle() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
-    server.newMessage(connection, connectionMsgBytes);
+    server.send(connection, connectionMsgBytes);
     server.subscribe(connection, 42, ["foo/bar/+"]);
 
     server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
@@ -238,7 +238,7 @@ void testUnsubscribeHandle() {
                       0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
         ];
 
-    server.newMessage(connection, bytes);
+    server.send(connection, bytes);
     const unsuback = connection.lastMsg!MqttUnsuback;
     shouldEqual(unsuback.msgId, 33);
 
@@ -250,7 +250,7 @@ void testUnsubscribeHandle() {
 void testUnsubscribeAll() {
     auto server = MqttServer!TestMqttConnection();
     auto connection = TestMqttConnection();
-    server.newMessage(connection, connectionMsgBytes);
+    server.send(connection, connectionMsgBytes);
     server.subscribe(connection, 42, ["foo/bar/+"]);
 
     server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
@@ -262,7 +262,7 @@ void testUnsubscribeAll() {
                       0x00, 0x09, 'f', 'o', 'o', '/', 'b', 'a', 'r', '/', '+',
         ];
 
-    server.newMessage(connection, cast(ubyte[])[0xe0, 0]);
+    server.send(connection, cast(ubyte[])[0xe0, 0]);
 
     server.publish(connection, "foo/bar/baz", [1, 2, 3, 4]);
     server.publish(connection, "foo/boogagoo", [9, 8, 7]);
@@ -318,9 +318,9 @@ void testDisconnect() {
     auto connection = TestMqttConnection();
 
     connection.connected.shouldBeFalse;
-    server.newMessage(connection, connectionMsgBytes);
+    server.send(connection, connectionMsgBytes);
     connection.connected.shouldBeTrue;
 
-    server.newMessage(connection, cast(ubyte[])[0xe0, 0x00]); //disconnect
+    server.send(connection, cast(ubyte[])[0xe0, 0x00]); //disconnect
     connection.connected.shouldBeFalse;
 }

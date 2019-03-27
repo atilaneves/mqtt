@@ -16,7 +16,7 @@ enum isInputRangeOf(R, T) = isInputRange!R && is(Unqual!(ElementType!R) == T);
 enum isMqttSubscriber(T) = is(typeof((){
     const(ubyte)[] bytes;
     auto sub = T.init;
-    sub.newMessage(bytes);
+    sub.send(bytes);
 }));
 
 struct MqttBroker(S) if(isMqttSubscriber!S) {
@@ -52,7 +52,7 @@ struct MqttBroker(S) if(isMqttSubscriber!S) {
 
     void publish(in string topic, in ubyte[] payload) {
         if(_useCache && topic in _cache) {
-            foreach(subscriber; _cache[topic]) subscriber.newMessage(payload);
+            foreach(subscriber; _cache[topic]) subscriber.send(payload);
             return;
         }
         auto pubParts = topic.splitter("/");
@@ -125,7 +125,7 @@ private:
 
     void publishNode(R)(Node* node, in string topic, R bytes) if(isInputRangeOf!(R, ubyte)) {
         foreach(ref subscription; node.leaves) {
-            subscription.newMessage(bytes);
+            subscription.send(bytes);
             if(_useCache) _cache[topic.idup] ~= subscription._subscriber;
         }
     }
@@ -139,8 +139,8 @@ private struct Subscription(S) if(isMqttSubscriber!S) {
         _qos = topic.qos;
     }
 
-    void newMessage(in ubyte[] bytes) {
-        _subscriber.newMessage(bytes);
+    void send(in ubyte[] bytes) {
+        _subscriber.send(bytes);
     }
 
     bool isSubscriber(ref S subscriber, in string[] topics) @trusted const {

@@ -10,7 +10,7 @@ struct TestMqttSubscriber {
     alias Payload = ubyte[];
 
     static int sIndex;
-    void newMessage(in ubyte[] bytes) {
+    void send(in ubyte[] bytes) {
         if(!index) index = ++sIndex;
         import std.stdio;
         writelnUt("New message: ", bytes, ", index: ", index);

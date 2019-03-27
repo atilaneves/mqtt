@@ -18,7 +18,7 @@ struct MqttTcpConnection {
         _tcpConnection.read(bytes);
     }
 
-    void newMessage(in ubyte[] bytes) @safe {
+    void send(in ubyte[] bytes) @safe {
         if(connected) {
             _tcpConnection.write(bytes);
         }
