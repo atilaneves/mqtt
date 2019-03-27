@@ -24,7 +24,7 @@
             "name": "unittest",
             "targetType": "executable",
             "sourcePaths": ["tests"],
-            "excludedSourceFiles": ["mqttd/app.d", "mqttd/tcp.d"],
+            "excludedSourceFiles": ["mqttd/main.d", "mqttd/runtime.d", "mqttd/tcp.d"],
             "preBuildCommands": ["dub run unit-threaded -c gen_ut_main -- -f bin/ut.d tests"],
             "mainSourceFile": "bin/ut.d",
             "dependencies": {

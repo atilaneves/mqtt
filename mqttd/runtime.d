@@ -1,16 +1,27 @@
-import vibe.d;
-import mqttd.server;
-import mqttd.tcp;
-import std.stdio;
-import std.typecons;
+module mqttd.runtime;
 
 
+shared static this() nothrow {
+    try
+        mainLoop;
+    catch(Exception e) {
+        import std.experimental.logger: error;
+        try
+            error("static ctor ERROR: ", e.msg);
+        catch(Exception _)
+            assert(0, "Could not long error");
+    }
+}
 
-shared static this() {
+void mainLoop() {
 
     import mqttd.log: error;
+    import mqttd.server: MqttServer;
+    import mqttd.tcp: MqttTcpConnection;
+    import vibe.d: listenTCP, TCPConnection;
     import std.stdio: writeln;
     import std.typecons: Yes, No;
+    import std.datetime: seconds;
     import core.runtime: Runtime;
 
     const useCache = Runtime.args.length > 1 ? Yes.useCache : No.useCache;
@@ -41,10 +52,6 @@ shared static this() {
 }
 
 
-
-int main(string[] args) {
-    return vibemain();
-}
 
 int vibemain() {
     import vibe.core.core : runEventLoop, lowerPrivileges;
