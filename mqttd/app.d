@@ -4,39 +4,45 @@ import mqttd.tcp;
 import std.stdio;
 import std.typecons;
 
-private __gshared MqttServer!(MqttTcpConnection) gServer;
+
 
 shared static this() {
+
+    import mqttd.log: error;
+    import std.stdio: writeln;
+    import std.typecons: Yes, No;
+    import core.runtime: Runtime;
+
+    const useCache = Runtime.args.length > 1 ? Yes.useCache : No.useCache;
+    if(useCache) writeln("Enabling the cache");
+
     // debug {
     //     setLogLevel(LogLevel.debugV);
     // }
-    import std.functional: toDelegate;
-    gServer = typeof(gServer)(No.useCache);
-    listenTCP(1883, toDelegate(&accept));
-}
 
+    auto server = MqttServer!(MqttTcpConnection)(useCache);
 
-void accept(TCPConnection tcpConnection) @trusted nothrow {
-    import mqttd.log: error;
+    listenTCP(
+        1883,
+        (TCPConnection tcpConnection) {
+            try {
+                if (!tcpConnection.waitForData(10.seconds())) {
+                    error("Client didn't send the initial request in a timely manner. Closing connection.");
+                }
 
-    try {
-        if (!tcpConnection.waitForData(10.seconds())) {
-            error("Client didn't send the initial request in a timely manner. Closing connection.");
+                auto mqttConnection = MqttTcpConnection(tcpConnection);
+                mqttConnection.run(server);
+                if(tcpConnection.connected) tcpConnection.close();
+            } catch(Exception e)
+                error("Fatal error: ", e.msg);
+
         }
-
-        auto mqttConnection = MqttTcpConnection(tcpConnection);
-        mqttConnection.run(gServer);
-        if(tcpConnection.connected) tcpConnection.close();
-    } catch(Exception e)
-        error("Fatal error: ", e.msg);
+    );
 }
+
 
 
 int main(string[] args) {
-    if(args.length > 1) {
-        writeln("Enabling the cache");
-        gServer.useCache = Yes.useCache;
-    }
     return vibemain();
 }
 
